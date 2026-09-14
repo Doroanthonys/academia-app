@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 # ---------------------------------------------------------
 # 1. CONFIGURACIÓN DE PÁGINA Y TEMA VISUAL PREMIUM
@@ -11,15 +12,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Estilos CSS Personalizados (Diseño Elegante y Moderno)
+# Estilos CSS Personalizados
 st.markdown("""
     <style>
-    /* Fondo general */
     .stApp {
         background-color: #F8FAFC;
     }
-    
-    /* Hero Header */
     .hero-box {
         background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
         padding: 22px;
@@ -40,8 +38,6 @@ st.markdown("""
         opacity: 0.9;
         margin-top: 4px;
     }
-
-    /* Tarjetas de Alumno */
     .student-card {
         background-color: #FFFFFF;
         border-radius: 12px;
@@ -50,8 +46,6 @@ st.markdown("""
         box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.04);
         margin-bottom: 12px;
     }
-
-    /* Botones Interactivos de Llamada y WhatsApp */
     .btn-action {
         display: inline-flex;
         align-items: center;
@@ -74,11 +68,39 @@ st.markdown("""
         background-color: #25D366;
         color: #FFFFFF !important;
     }
+    .badge-paid {
+        background-color: #DCFCE7;
+        color: #166534;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+    .badge-pending {
+        background-color: #FEE2E2;
+        color: #991B1B;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. BASE DE DATOS DE ALUMNOS (102 Alumnos Oficiales)
+# 2. INICIALIZACIÓN DE MEMORIA EN SESSION STATE
+# ---------------------------------------------------------
+if 'notas_alumnos' not in st.session_state:
+    st.session_state.notas_alumnos = {}
+
+if 'pagos_alumnos' not in st.session_state:
+    st.session_state.pagos_alumnos = {}
+
+if 'asistencia_alumnos' not in st.session_state:
+    st.session_state.asistencia_alumnos = {}
+
+# ---------------------------------------------------------
+# 3. BASE DE DATOS DE ALUMNOS (102 Alumnos Oficiales)
 # ---------------------------------------------------------
 @st.cache_data
 def cargar_alumnos():
@@ -190,7 +212,7 @@ def cargar_alumnos():
 
 df_alumnos = cargar_alumnos()
 
-# Horarios de Profesores
+# Horarios
 horarios = {
     "Doro": [
         {"Hora": "15:00 - 16:00", "Lunes": "-", "Martes": "Mama vera (online)", "Miércoles": "Iria Cibeiro (C-1)", "Jueves": "Grupo 4ºeso (C-1)", "Viernes": "Brais"},
@@ -233,16 +255,15 @@ horarios = {
 }
 
 # ---------------------------------------------------------
-# 3. ENCABEZADO Y MENÚ DE NAVEGACIÓN
+# 4. ENCABEZADO Y MENÚ DE NAVEGACIÓN
 # ---------------------------------------------------------
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado de Gestión de Alumnos, Horarios y Contacto Directo</div>
+        <div class='hero-subtitle'>Portal Integrado de Gestión de Alumnos, Notas, Pagos y Circulares</div>
     </div>
 """, unsafe_allow_html=True)
 
-# Barra Lateral (Sidebar)
 with st.sidebar:
     try:
         st.image("logo.webp", width=180)
@@ -252,22 +273,14 @@ with st.sidebar:
     st.markdown("### 📌 Navegación")
     menu = st.radio(
         "",
-        ["🏠 Inicio & Buscador", "👨‍🎓 Directorio de Alumnos", "🗓️ Horario de Profesores", "👥 Grupos de Clases"]
+        ["🏠 Buscador & Ficha Alumno", "📢 Enviar Circular General", "👨‍🎓 Directorio de Alumnos", "🗓️ Horario de Profesores", "👥 Grupos de Clases"]
     )
 
 # ---------------------------------------------------------
-# 4. PANTALLA 1: INICIO & BUSCADOR CON BOTONES DE ACCIÓN
+# 5. PANTALLA 1: BUSCADOR CON FICHA COMPLETA
 # ---------------------------------------------------------
-if menu == "🏠 Inicio & Buscador":
-    st.subheader("📊 Resumen General de la Academia")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Alumnos Totales", len(df_alumnos))
-    c2.metric("Profesores Activos", len(horarios))
-    c3.metric("Grupos de Clase", "20")
-    c4.metric("Estado del Sistema", "En línea ✅")
-
-    st.markdown("---")
-    st.subheader("🔍 Buscador de Alumnos con Contacto Directo")
+if menu == "🏠 Buscador & Ficha Alumno":
+    st.subheader("🔍 Buscador de Alumnos con Gestión Integral")
     busqueda = st.text_input("Ingresa Nombre, Apellido o Número de Matrícula:", placeholder="Ej: Shasha, 10741, Perez...")
     
     if busqueda:
@@ -279,21 +292,25 @@ if menu == "🏠 Inicio & Buscador":
         ]
         
         if len(resultado) > 0:
-            st.success(f"Se han encontrado **{len(resultado)}** coincidencia(s):")
+            st.success(f"Se han encontrado **{len(resultado)}** alumno(s):")
             for idx, row in resultado.iterrows():
+                mat = str(row['Matrícula'])
                 nombre_comp = f"{row['Nombre']} {row['Primer Apellido']} {row['Segundo Apellido']}".strip()
                 telf = str(row['Teléfono']).replace(" ", "")
                 
-                # Creación de enlaces interactivos
-                link_llamada = f"tel:{telf}"
-                link_wa = f"https://wa.me/34{telf}?text=Hola%20{row['Nombre']},%20te%20escribimos%20desde%20Anthony's%20English%20School:"
+                estado_pago = st.session_state.pagos_alumnos.get(mat, "Al día ✅")
+                badge_pago = f"<span class='badge-paid'>{estado_pago}</span>" if estado_pago == "Al día ✅" else f"<span class='badge-pending'>{estado_pago}</span>"
                 
-                with st.container():
+                link_llamada = f"tel:{telf}"
+                msg_individual = f"Hola {row['Nombre']}, te escribimos desde Anthony's English School:"
+                link_wa = f"https://wa.me/34{telf}?text={msg_individual}"
+                
+                with st.expander(f"👤 {nombre_comp} | Matrícula: {mat} | Estado: {estado_pago}", expanded=True):
                     st.markdown(f"""
                         <div class='student-card'>
-                            <div style='font-size: 1.15rem; font-weight: 700; color: #1E3A8A;'>👤 {nombre_comp}</div>
-                            <div style='color: #64748B; font-size: 0.9rem; margin-top:2px;'>
-                                🆔 <b>Matrícula:</b> {row['Matrícula']} &nbsp;|&nbsp; 📱 <b>Teléfono:</b> {telf} &nbsp;|&nbsp; 📅 <b>Alta:</b> {row['Fecha Alta']}
+                            <div style='font-size: 1.2rem; font-weight: 700; color: #1E3A8A;'>{nombre_comp}</div>
+                            <div style='color: #64748B; font-size: 0.95rem; margin-top:4px;'>
+                                🆔 <b>Matrícula:</b> {mat} &nbsp;|&nbsp; 📱 <b>Teléfono:</b> {telf} &nbsp;|&nbsp; 📅 <b>Alta:</b> {row['Fecha Alta']} &nbsp;|&nbsp; 💶 <b>Pagos:</b> {badge_pago}
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
@@ -303,57 +320,101 @@ if menu == "🏠 Inicio & Buscador":
                         st.markdown(f'<a href="{link_llamada}" target="_blank" class="btn-action btn-call">📞 Llamar al Alumno</a>', unsafe_allow_html=True)
                     with b_col2:
                         st.markdown(f'<a href="{link_wa}" target="_blank" class="btn-action btn-wa">💬 Enviar WhatsApp Directo</a>', unsafe_allow_html=True)
-                    st.write("")
+                    
+                    st.markdown("---")
+                    
+                    t_pagos, t_asistencia, t_notas = st.tabs(["💶 Estado de Pagos", "📅 Control de Asistencia", "📝 Notas y Observaciones"])
+                    
+                    with t_pagos:
+                        st.write("#### 💶 Gestión de Pagos")
+                        nuevo_estado = st.selectbox(
+                            "Seleccionar estado de cobro:",
+                            ["Al día ✅", "Pendiente Mes Actual ⚠️", "Pendiente Matrícula ❌"],
+                            key=f"pago_{mat}",
+                            index=0 if estado_pago == "Al día ✅" else 1
+                        )
+                        if st.button("Guardar Estado de Pago", key=f"btn_pago_{mat}"):
+                            st.session_state.pagos_alumnos[mat] = nuevo_estado
+                            st.success(f"Estado actualizado a: {nuevo_estado}")
+                            st.rerun()
+
+                    with t_asistencia:
+                        st.write("#### 📅 Registro de Asistencia")
+                        col_ast1, col_ast2 = st.columns(2)
+                        with col_ast1:
+                            fecha_ast = st.date_input("Fecha:", datetime.now(), key=f"fecha_{mat}")
+                        with col_ast2:
+                            estado_ast = st.radio("Asistencia:", ["Asistió ✅", "Falta Justificada 🟡", "Falta Injustificada 🔴"], key=f"ast_{mat}")
+                        
+                        if st.button("Registrar Asistencia", key=f"btn_ast_{mat}"):
+                            if mat not in st.session_state.asistencia_alumnos:
+                                st.session_state.asistencia_alumnos[mat] = []
+                            st.session_state.asistencia_alumnos[mat].append({"Fecha": str(fecha_ast), "Estado": estado_ast})
+                            st.success(f"Asistencia registrada para el {fecha_ast}")
+
+                        if mat in st.session_state.asistencia_alumnos:
+                            st.write("**Historial reciente:**")
+                            st.dataframe(pd.DataFrame(st.session_state.asistencia_alumnos[mat]), use_container_width=True)
+
+                    with t_notas:
+                        st.write("#### 📝 Expediente de Notas y Observaciones")
+                        nota_actual = st.session_state.notas_alumnos.get(mat, "")
+                        nueva_nota = st.text_area("Añadir notas pedagógicas o del comportamiento:", value=nota_actual, key=f"nota_{mat}", height=120)
+                        if st.button("Guardar Notas", key=f"btn_nota_{mat}"):
+                            st.session_state.notas_alumnos[mat] = nueva_nota
+                            st.success("Notas guardadas correctamente.")
+
         else:
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 5. PANTALLA 2: DIRECTORIO COMPLETO DE ALUMNOS
+# 6. PANTALLA 2: CIRCULAR GENERAL Y COMUNICACIÓN MASIVA
+# ---------------------------------------------------------
+elif menu == "📢 Enviar Circular General":
+    st.subheader("📢 Envío de Circulares y Avisos Generales")
+    st.write("Redacta un aviso institucional (vacaciones, cambios de clase, fechas de exámenes) para enviarlo a la lista de alumnos.")
+    
+    mensaje_circular = st.text_area(
+        "Escribe el mensaje de la circular:",
+        value="Estimados alumnos y familias de Anthony's English School:\n\nOs informamos de que...",
+        height=150
+    )
+    
+    if mensaje_circular:
+        import urllib.parse
+        msg_encoded = urllib.parse.quote(mensaje_circular)
+        
+        st.markdown("### 📲 Lista de Contactos para Envío")
+        st.info("Haz clic en el botón de WhatsApp al lado de cada alumno para abrir la conversación con la circular pre-redactada:")
+        
+        for idx, row in df_alumnos.iterrows():
+            telf = str(row['Teléfono']).replace(" ", "")
+            link_wa_circ = f"https://wa.me/34{telf}?text={msg_encoded}"
+            
+            c_nom, c_btn = st.columns([3, 1])
+            c_nom.write(f"👤 **{row['Nombre']} {row['Primer Apellido']}** ({telf})")
+            c_btn.markdown(f'<a href="{link_wa_circ}" target="_blank" class="btn-action btn-wa" style="padding:4px 8px; font-size:0.8rem;">💬 Enviar Circular</a>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# 7. OTRAS PANTALLAS (DIRECTORIO, HORARIOS, GRUPOS)
 # ---------------------------------------------------------
 elif menu == "👨‍🎓 Directorio de Alumnos":
     st.subheader("📋 Listado Oficial de Alumnos (102 Alumnos)")
-    
-    col_f1, col_f2 = st.columns([3, 1])
-    with col_f1:
-        filtro = st.text_input("Filtrar lista de alumnos:")
-    
-    if filtro:
-        df_mostrar = df_alumnos[
-            df_alumnos['Nombre'].str.contains(filtro, case=False, na=False) |
-            df_alumnos['Primer Apellido'].str.contains(filtro, case=False, na=False) |
-            df_alumnos['Segundo Apellido'].str.contains(filtro, case=False, na=False)
-        ]
-    else:
-        df_mostrar = df_alumnos
-
+    filtro = st.text_input("Filtrar lista de alumnos:")
+    df_mostrar = df_alumnos[df_alumnos['Nombre'].str.contains(filtro, case=False, na=False)] if filtro else df_alumnos
     st.dataframe(df_mostrar, height=450, use_container_width=True)
 
-# ---------------------------------------------------------
-# 6. PANTALLA 3: HORARIOS DE PROFESORES
-# ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
     profesor_sel = st.selectbox("Selecciona un Profesor:", ["Doro", "Iria", "Isa", "Ivan"])
-    
     if profesor_sel in horarios:
-        df_horario = pd.DataFrame(horarios[profesor_sel])
-        st.dataframe(df_horario, use_container_width=True, height=400)
+        st.dataframe(pd.DataFrame(horarios[profesor_sel]), use_container_width=True, height=400)
 
-# ---------------------------------------------------------
-# 7. PANTALLA 4: GRUPOS Y AULAS
-# ---------------------------------------------------------
 elif menu == "👥 Grupos de Clases":
     st.subheader("🏫 Configuración de Grupos y Aulas")
     grupos_info = [
         {"Grupo": "Grupo 0", "Profesor": "Doro", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS C"},
         {"Grupo": "Grupo 1", "Profesor": "Iza", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS D"},
-        {"Grupo": "Grupo 2", "Profesor": "Ivan", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS A"},
-        {"Grupo": "Grupo 3", "Profesor": "Ivan", "Horario": "Lun 18:00 / Jue 17:00", "Días": "Lunes y Jueves", "Aula": "CLASS A"},
-        {"Grupo": "Grupo 4", "Profesor": "Iza", "Horario": "18:00 a 19:00", "Días": "Lunes", "Aula": "CLASS D"},
-        {"Grupo": "Grupo 5", "Profesor": "Doro", "Horario": "18:00 a 19:00", "Días": "Lunes", "Aula": "CLASS C"},
-        {"Grupo": "Grupo 6", "Profesor": "Eve", "Horario": "18:00 a 19:00", "Días": "Miércoles", "Aula": "CLASS B"},
-        {"Grupo": "Grupo 7", "Profesor": "Doro", "Horario": "15:00 a 16:00", "Días": "Viernes", "Aula": "CLASS A"},
-        {"Grupo": "Grupo 8", "Profesor": "Doro", "Horario": "15:00 a 16:00", "Días": "Martes y Jueves", "Aula": "CLASS A"},
-        {"Grupo": "Grupo 9", "Profesor": "Doro", "Horario": "16:00 a 17:00", "Días": "Martes y Jueves", "Aula": "CLASS A"}
+        {"Grupo": "Grupo 2", "Profesor": "Ivan", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS A"}
     ]
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
