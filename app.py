@@ -1,32 +1,85 @@
 import streamlit as st
 import pandas as pd
 
-# Configuración de la página
+# ---------------------------------------------------------
+# 1. CONFIGURACIÓN DE PÁGINA Y TEMA VISUAL PREMIUM
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="Anthony's English School - Panel de Gestión",
+    page_title="Anthony's English School",
     page_icon="🇬🇧",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Estilo personalizado
+# Estilos CSS Personalizados (Diseño Elegante y Moderno)
 st.markdown("""
     <style>
-    .main-header {
-        font-size:2.3rem;
-        font-weight:bold;
-        color:#1E3A8A;
-        text-align:center;
+    /* Fondo general */
+    .stApp {
+        background-color: #F8FAFC;
     }
-    .sub-header {
-        font-size:1.1rem;
-        color:#4B5563;
-        text-align:center;
-        margin-bottom: 25px;
+    
+    /* Hero Header */
+    .hero-box {
+        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+        padding: 22px;
+        border-radius: 16px;
+        color: white;
+        text-align: center;
+        box-shadow: 0px 8px 20px rgba(30, 58, 138, 0.15);
+        margin-bottom: 20px;
+    }
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    .hero-subtitle {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-top: 4px;
+    }
+
+    /* Tarjetas de Alumno */
+    .student-card {
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        padding: 16px 20px;
+        border-left: 5px solid #2563EB;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.04);
+        margin-bottom: 12px;
+    }
+
+    /* Botones Interactivos de Llamada y WhatsApp */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none !important;
+        text-align: center;
+        box-shadow: 0px 3px 8px rgba(0,0,0,0.08);
+        transition: all 0.2s ease;
+    }
+    .btn-call {
+        background-color: #2563EB;
+        color: #FFFFFF !important;
+    }
+    .btn-wa {
+        background-color: #25D366;
+        color: #FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# CARGA DE DATOS DE ALUMNOS (102 alumnos)
+# ---------------------------------------------------------
+# 2. BASE DE DATOS DE ALUMNOS (102 Alumnos Oficiales)
+# ---------------------------------------------------------
 @st.cache_data
 def cargar_alumnos():
     data = [
@@ -137,6 +190,7 @@ def cargar_alumnos():
 
 df_alumnos = cargar_alumnos()
 
+# Horarios de Profesores
 horarios = {
     "Doro": [
         {"Hora": "15:00 - 16:00", "Lunes": "-", "Martes": "Mama vera (online)", "Miércoles": "Iria Cibeiro (C-1)", "Jueves": "Grupo 4ºeso (C-1)", "Viernes": "Brais"},
@@ -178,60 +232,105 @@ horarios = {
     ]
 }
 
-# ENCABEZADO
-col_logo, col_titulo = st.columns([1, 4])
+# ---------------------------------------------------------
+# 3. ENCABEZADO Y MENÚ DE NAVEGACIÓN
+# ---------------------------------------------------------
+st.markdown("""
+    <div class='hero-box'>
+        <div class='hero-title'>🇬🇧 Anthony's English School</div>
+        <div class='hero-subtitle'>Portal Integrado de Gestión de Alumnos, Horarios y Contacto Directo</div>
+    </div>
+""", unsafe_allow_html=True)
 
-with col_logo:
+# Barra Lateral (Sidebar)
+with st.sidebar:
     try:
-        st.image("logo.webp", width=160)
+        st.image("logo.webp", width=180)
     except:
         st.write("🇬🇧 **Anthony's English School**")
+    
+    st.markdown("### 📌 Navegación")
+    menu = st.radio(
+        "",
+        ["🏠 Inicio & Buscador", "👨‍🎓 Directorio de Alumnos", "🗓️ Horario de Profesores", "👥 Grupos de Clases"]
+    )
 
-with col_titulo:
-    st.markdown("<div class='main-header'>Anthony's English School</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sub-header'>Sistema de Gestión de Alumnos, Horarios y Profesores</div>", unsafe_allow_html=True)
-
-st.divider()
-
-menu = st.sidebar.radio(
-    "📌 Menú Principal",
-    ["🏠 Inicio", "👨‍🎓 Gestión de Alumnos", "🗓️ Horario de Profesores", "👥 Grupos de Clases"]
-)
-
-if menu == "🏠 Inicio":
-    st.subheader("📊 Resumen General")
+# ---------------------------------------------------------
+# 4. PANTALLA 1: INICIO & BUSCADOR CON BOTONES DE ACCIÓN
+# ---------------------------------------------------------
+if menu == "🏠 Inicio & Buscador":
+    st.subheader("📊 Resumen General de la Academia")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Alumnos Registrados", len(df_alumnos))
+    c1.metric("Alumnos Totales", len(df_alumnos))
     c2.metric("Profesores Activos", len(horarios))
-    c3.metric("Grupos Activos", "20")
-    c4.metric("Estado del Sistema", "Activo ✅")
+    c3.metric("Grupos de Clase", "20")
+    c4.metric("Estado del Sistema", "En línea ✅")
 
     st.markdown("---")
-    st.markdown("### 🔍 Buscador Rápido de Alumnos")
-    busqueda_rapida = st.text_input("Ingresa Nombre, Apellido o Número de Matrícula:", "")
-    if busqueda_rapida:
-        resultado = df_alumnos[
-            df_alumnos['Nombre'].str.contains(busqueda_rapida, case=False, na=False) |
-            df_alumnos['Primer Apellido'].str.contains(busqueda_rapida, case=False, na=False) |
-            df_alumnos['Matrícula'].str.contains(busqueda_rapida, case=False, na=False)
-        ]
-        st.dataframe(resultado, use_container_width=True)
-
-elif menu == "👨‍🎓 Gestión de Alumnos":
-    st.subheader("📋 Listado Oficial de Alumnos (102 Alumnos)")
-    filtro_nombre = st.text_input("Filtrar por Nombre o Apellidos:")
+    st.subheader("🔍 Buscador de Alumnos con Contacto Directo")
+    busqueda = st.text_input("Ingresa Nombre, Apellido o Número de Matrícula:", placeholder="Ej: Shasha, 10741, Perez...")
     
-    if filtro_nombre:
-        df_filtrado = df_alumnos[
-            df_alumnos['Nombre'].str.contains(filtro_nombre, case=False, na=False) |
-            df_alumnos['Primer Apellido'].str.contains(filtro_nombre, case=False, na=False) |
-            df_alumnos['Segundo Apellido'].str.contains(filtro_nombre, case=False, na=False)
+    if busqueda:
+        resultado = df_alumnos[
+            df_alumnos['Nombre'].str.contains(busqueda, case=False, na=False) |
+            df_alumnos['Primer Apellido'].str.contains(busqueda, case=False, na=False) |
+            df_alumnos['Segundo Apellido'].str.contains(busqueda, case=False, na=False) |
+            df_alumnos['Matrícula'].str.contains(busqueda, case=False, na=False)
+        ]
+        
+        if len(resultado) > 0:
+            st.success(f"Se han encontrado **{len(resultado)}** coincidencia(s):")
+            for idx, row in resultado.iterrows():
+                nombre_comp = f"{row['Nombre']} {row['Primer Apellido']} {row['Segundo Apellido']}".strip()
+                telf = str(row['Teléfono']).replace(" ", "")
+                
+                # Creación de enlaces interactivos
+                link_llamada = f"tel:{telf}"
+                link_wa = f"https://wa.me/34{telf}?text=Hola%20{row['Nombre']},%20te%20escribimos%20desde%20Anthony's%20English%20School:"
+                
+                with st.container():
+                    st.markdown(f"""
+                        <div class='student-card'>
+                            <div style='font-size: 1.15rem; font-weight: 700; color: #1E3A8A;'>👤 {nombre_comp}</div>
+                            <div style='color: #64748B; font-size: 0.9rem; margin-top:2px;'>
+                                🆔 <b>Matrícula:</b> {row['Matrícula']} &nbsp;|&nbsp; 📱 <b>Teléfono:</b> {telf} &nbsp;|&nbsp; 📅 <b>Alta:</b> {row['Fecha Alta']}
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    b_col1, b_col2 = st.columns(2)
+                    with b_col1:
+                        st.markdown(f'<a href="{link_llamada}" target="_blank" class="btn-action btn-call">📞 Llamar al Alumno</a>', unsafe_allow_html=True)
+                    with b_col2:
+                        st.markdown(f'<a href="{link_wa}" target="_blank" class="btn-action btn-wa">💬 Enviar WhatsApp Directo</a>', unsafe_allow_html=True)
+                    st.write("")
+        else:
+            st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
+
+# ---------------------------------------------------------
+# 5. PANTALLA 2: DIRECTORIO COMPLETO DE ALUMNOS
+# ---------------------------------------------------------
+elif menu == "👨‍🎓 Directorio de Alumnos":
+    st.subheader("📋 Listado Oficial de Alumnos (102 Alumnos)")
+    
+    col_f1, col_f2 = st.columns([3, 1])
+    with col_f1:
+        filtro = st.text_input("Filtrar lista de alumnos:")
+    
+    if filtro:
+        df_mostrar = df_alumnos[
+            df_alumnos['Nombre'].str.contains(filtro, case=False, na=False) |
+            df_alumnos['Primer Apellido'].str.contains(filtro, case=False, na=False) |
+            df_alumnos['Segundo Apellido'].str.contains(filtro, case=False, na=False)
         ]
     else:
-        df_filtrado = df_alumnos
+        df_mostrar = df_alumnos
 
-    st.dataframe(df_filtrado, height=450, use_container_width=True)
+    st.dataframe(df_mostrar, height=450, use_container_width=True)
 
+# ---------------------------------------------------------
+# 6. PANTALLA 3: HORARIOS DE PROFESORES
+# ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
     profesor_sel = st.selectbox("Selecciona un Profesor:", ["Doro", "Iria", "Isa", "Ivan"])
@@ -240,6 +339,9 @@ elif menu == "🗓️ Horario de Profesores":
         df_horario = pd.DataFrame(horarios[profesor_sel])
         st.dataframe(df_horario, use_container_width=True, height=400)
 
+# ---------------------------------------------------------
+# 7. PANTALLA 4: GRUPOS Y AULAS
+# ---------------------------------------------------------
 elif menu == "👥 Grupos de Clases":
     st.subheader("🏫 Configuración de Grupos y Aulas")
     grupos_info = [
