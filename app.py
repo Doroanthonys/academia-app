@@ -168,7 +168,6 @@ def obtener_102_alumnos():
         {"Matrícula": "21173", "Nombre": "PALOMA", "Primer Apellido": "UGARTE", "Segundo Apellido": "GARCIA", "Teléfono": "673525726", "Fecha Alta": "04/06/2026"}
     ]
 
-# Carga de alumnos
 if not os.path.exists(DATA_FILE):
     df_init = pd.DataFrame(obtener_102_alumnos())
     df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
@@ -257,7 +256,7 @@ with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado - Horarios, Bajas y Descarga Directa</div>
+        <div class='hero-subtitle'>Portal Integrado - Horarios, Bajas y Descarga Directa Limpia</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -320,24 +319,46 @@ if menu == "🏠 Buscador & Ficha Alumno":
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 6. LISTA COMPLETA Y DESCARGA EN EXCEL Y CSV LIMPIO
+# 6. LISTA COMPLETA Y DESCARGAS CON FORMATO EXCEL PERFECTO
 # ---------------------------------------------------------
 elif menu == "📋 Lista Completa & Descargas":
     st.subheader(f"📋 Registro Oficial de Alumnos ({len(df_alumnos)} Alumnos)")
     
-    # Generar descarga de CSV limpio
-    csv_data = df_alumnos.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+    # Exportación optimizada de Alumnos (UTF-8 con BOM y separador ;)
+    buffer_alumnos = io.BytesIO()
+    df_alumnos.to_csv(buffer_alumnos, index=False, sep=';', encoding='utf-8-sig')
+    buffer_alumnos.seek(0)
     
     col_d1, col_d2 = st.columns(2)
     with col_d1:
         st.download_button(
-            label="📥 Descargar Lista Completa (CSV para Excel)",
-            data=csv_data,
+            label="📥 Descargar Alumnos (Excel / CSV Perfecto)",
+            data=buffer_alumnos,
             file_name=f"Alumnos_Anthonys_School_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv"
         )
     
-    st.dataframe(df_alumnos, height=450, use_container_width=True)
+    st.dataframe(df_alumnos, height=350, use_container_width=True)
+    
+    st.markdown("---")
+    st.subheader("🗓️ Descargar Horarios de Profesores para Imprimir")
+    
+    prof_descarga = st.selectbox("Selecciona Profesor para exportar horario:", list(horarios.keys()))
+    if prof_descarga in horarios:
+        df_hor_descarga = pd.DataFrame(horarios[prof_descarga])
+        
+        # Exportación optimizada de Horarios (Evita tildes/símbolos raros como MiÃ©rcoles o 4ºeso)
+        buffer_horario = io.BytesIO()
+        df_hor_descarga.to_csv(buffer_horario, index=False, sep=';', encoding='utf-8-sig')
+        buffer_horario.seek(0)
+        
+        st.download_button(
+            label=f"🖨️ Descargar Horario de {prof_descarga} (Listo para Imprimir en Excel)",
+            data=buffer_horario,
+            file_name=f"Horario_{prof_descarga}_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
+        st.dataframe(df_hor_descarga, use_container_width=True)
 
 # ---------------------------------------------------------
 # 7. HORARIOS DE PROFESORES
