@@ -4,6 +4,7 @@ import requests
 from datetime import datetime
 import json
 import os
+import io
 
 # ---------------------------------------------------------
 # 1. CONFIGURACIÓN DE PÁGINA Y BOT TELEGRAM
@@ -170,12 +171,12 @@ def obtener_102_alumnos():
 # Carga de alumnos
 if not os.path.exists(DATA_FILE):
     df_init = pd.DataFrame(obtener_102_alumnos())
-    df_init.to_csv(DATA_FILE, index=False)
+    df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 else:
     df_check = pd.read_csv(DATA_FILE, dtype=str)
     if len(df_check) < 100:
         df_init = pd.DataFrame(obtener_102_alumnos())
-        df_init.to_csv(DATA_FILE, index=False)
+        df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 
 df_alumnos = pd.read_csv(DATA_FILE, dtype=str)
 
@@ -256,7 +257,7 @@ with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado - Horarios Editables y Gestión Completa</div>
+        <div class='hero-subtitle'>Portal Integrado - Horarios, Bajas y Descarga Directa</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -269,14 +270,14 @@ with st.sidebar:
     st.markdown("### 📌 Navegación")
     menu = st.radio(
         "",
-        ["🏠 Buscador & Ficha Alumno", "🗓️ Horario de Profesores", "👥 Grupos de Clases", "🛠️ Editor de Alumnos y Horarios", "📌 Recordatorios Activos", "📢 Enviar Circular General"]
+        ["🏠 Buscador & Ficha Alumno", "📋 Lista Completa & Descargas", "🗓️ Horario de Profesores", "👥 Grupos de Clases", "🛠️ Editor (Bajas y Modificaciones)", "📌 Recordatorios Activos", "📢 Enviar Circular General"]
     )
 
 # ---------------------------------------------------------
 # 5. BUSCADOR Y FICHA COMPLETA
 # ---------------------------------------------------------
 if menu == "🏠 Buscador & Ficha Alumno":
-    st.subheader("🔍 Buscador de Alumnos con Contacto Directo y Alertas")
+    st.subheader("🔍 Buscador de Alumnos")
     busqueda = st.text_input("Ingresa Nombre, Apellido o Número de Matrícula:", placeholder="Ej: Alejandro, Shasha, 10741...")
     
     if busqueda:
@@ -319,7 +320,27 @@ if menu == "🏠 Buscador & Ficha Alumno":
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 6. HORARIOS DE PROFESORES
+# 6. LISTA COMPLETA Y DESCARGA EN EXCEL Y CSV LIMPIO
+# ---------------------------------------------------------
+elif menu == "📋 Lista Completa & Descargas":
+    st.subheader(f"📋 Registro Oficial de Alumnos ({len(df_alumnos)} Alumnos)")
+    
+    # Generar descarga de CSV limpio
+    csv_data = df_alumnos.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+    
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        st.download_button(
+            label="📥 Descargar Lista Completa (CSV para Excel)",
+            data=csv_data,
+            file_name=f"Alumnos_Anthonys_School_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
+    
+    st.dataframe(df_alumnos, height=450, use_container_width=True)
+
+# ---------------------------------------------------------
+# 7. HORARIOS DE PROFESORES
 # ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
@@ -330,52 +351,26 @@ elif menu == "🗓️ Horario de Profesores":
         st.dataframe(df_horario, use_container_width=True, height=450)
 
 # ---------------------------------------------------------
-# 7. GRUPOS Y AULAS
+# 8. GRUPOS Y AULAS
 # ---------------------------------------------------------
 elif menu == "👥 Grupos de Clases":
     st.subheader("🏫 Configuración de Grupos y Aulas")
     grupos_info = [
         {"Grupo": "Grupo 0", "Profesor": "Doro", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS C"},
         {"Grupo": "Grupo 1", "Profesor": "Isa", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS D"},
-        {"Grupo": "Grupo 2", "Profesor": "Ivan", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS A"},
-        {"Grupo": "Grupo 3", "Profesor": "Ivan", "Horario": "Lun 18:00 / Jue 17:00", "Días": "Lunes y Jueves", "Aula": "CLASS A"},
-        {"Grupo": "Grupo 4", "Profesor": "Isa", "Horario": "18:00 a 19:00", "Días": "Lunes", "Aula": "CLASS D"},
-        {"Grupo": "Grupo 5", "Profesor": "Doro", "Horario": "18:00 a 19:00", "Días": "Lunes", "Aula": "CLASS C"}
+        {"Grupo": "Grupo 2", "Profesor": "Ivan", "Horario": "17:00 a 18:00", "Días": "Lunes", "Aula": "CLASS A"}
     ]
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
 # ---------------------------------------------------------
-# 8. EDITOR COMPLETO (ALUMNOS Y HORARIOS)
+# 9. EDITOR COMPLETO (AÑADIR, EDITAR Y DAR DE BAJA)
 # ---------------------------------------------------------
-elif menu == "🛠️ Editor de Alumnos y Horarios":
-    st.subheader("🛠️ Panel de Edición en Tiempo Real")
-    pestana = st.tabs(["🗓️ Modificar Horarios de Profesores", "👨‍🎓 Añadir / Editar Alumnos"])
+elif menu == "🛠️ Editor (Bajas y Modificaciones)":
+    st.subheader("🛠️ Panel de Modificación y Dar de Baja")
+    pestana = st.tabs(["👨‍🎓 Gestión de Alumnos (Editar / Dar de Baja)", "🗓️ Modificar Horarios"])
     
     with pestana[0]:
-        st.write("#### ✏️ Modificar Cuadrante de Clases")
-        prof_edit = st.selectbox("Selecciona Profesor a editar:", list(horarios.keys()), key="prof_edit_sel")
-        
-        if prof_edit:
-            df_prof = pd.DataFrame(horarios[prof_edit])
-            franja_sel = st.selectbox("Selecciona la Franja Horaria:", df_prof['Hora'].tolist())
-            dia_sel = st.selectbox("Selecciona el Día de la Semana:", ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"])
-            
-            # Obtener valor actual
-            idx_franja = df_prof[df_prof['Hora'] == franja_sel].index[0]
-            val_actual = df_prof.at[idx_franja, dia_sel]
-            
-            nuevo_valor_clase = st.text_input(f"Clase/Alumno asignado para el {dia_sel} a las {franja_sel}:", value=val_actual)
-            
-            if st.button("💾 Guardar Cambio en el Horario"):
-                horarios[prof_edit][idx_franja][dia_sel] = nuevo_valor_clase
-                with open(HORARIOS_FILE, "w", encoding="utf-8") as f:
-                    json.dump(horarios, f, ensure_ascii=False, indent=2)
-                st.success(f"¡Horario de {prof_edit} actualizado con éxito! ✅")
-                st.rerun()
-
-    with pestana[1]:
-        st.write("#### 👨‍🎓 Gestión de Alumnos")
-        opcion_ed = st.radio("Acción:", ["➕ Añadir Nuevo Alumno", "✏️ Editar Alumno Existente"])
+        opcion_ed = st.radio("Acción:", ["➕ Añadir Nuevo Alumno", "✏️ Editar Alumno Existente", "❌ Dar de Baja / Eliminar Alumno"])
         
         if opcion_ed == "➕ Añadir Nuevo Alumno":
             with st.form("form_nuevo"):
@@ -389,11 +384,12 @@ elif menu == "🛠️ Editor de Alumnos y Horarios":
                 if btn_guardar:
                     nueva_fila = {"Matrícula": n_mat, "Nombre": n_nom.upper(), "Primer Apellido": n_ap1.upper(), "Segundo Apellido": n_ap2.upper(), "Teléfono": n_tel, "Fecha Alta": datetime.now().strftime("%d/%m/%Y")}
                     df_alumnos = pd.concat([df_alumnos, pd.DataFrame([nueva_fila])], ignore_index=True)
-                    df_alumnos.to_csv(DATA_FILE, index=False)
-                    st.success(f"Alumno {n_nom} registrado y sincronizado ✅")
+                    df_alumnos.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
+                    st.success(f"Alumno {n_nom} registrado correctamente ✅")
+                    st.rerun()
 
         elif opcion_ed == "✏️ Editar Alumno Existente":
-            sel_alum = st.selectbox("Selecciona alumno:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
+            sel_alum = st.selectbox("Selecciona alumno a editar:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
             if sel_alum:
                 mat_sel = sel_alum.split(" - ")[0]
                 idx_alum = df_alumnos[df_alumnos['Matrícula'] == mat_sel].index[0]
@@ -408,11 +404,47 @@ elif menu == "🛠️ Editor de Alumnos y Horarios":
                         df_alumnos.at[idx_alum, 'Nombre'] = e_nom.upper()
                         df_alumnos.at[idx_alum, 'Primer Apellido'] = e_ap1.upper()
                         df_alumnos.at[idx_alum, 'Teléfono'] = e_tel
-                        df_alumnos.to_csv(DATA_FILE, index=False)
+                        df_alumnos.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
                         st.success("Datos actualizados correctamente ✅")
+                        st.rerun()
+
+        elif opcion_ed == "❌ Dar de Baja / Eliminar Alumno":
+            sel_baja = st.selectbox("Selecciona alumno que se da de BAJA:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
+            if sel_baja:
+                mat_baja = sel_baja.split(" - ")[0]
+                idx_baja = df_alumnos[df_alumnos['Matrícula'] == mat_baja].index[0]
+                nom_baja = f"{df_alumnos.at[idx_baja, 'Nombre']} {df_alumnos.at[idx_baja, 'Primer Apellido']}"
+                
+                st.warning(f"⚠️ ¿Estás seguro de que quieres dar de baja a **{nom_baja}** (Matrícula: {mat_baja})?")
+                if st.button("❌ Confirmar Baja Definitiva"):
+                    df_alumnos = df_alumnos.drop(idx_baja).reset_index(drop=True)
+                    df_alumnos.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
+                    st.error(f"El alumno {nom_baja} ha sido dado de baja correctamente ✅")
+                    st.rerun()
+
+    with pestana[1]:
+        st.write("#### ✏️ Modificar Cuadrante de Clases")
+        prof_edit = st.selectbox("Selecciona Profesor a editar:", list(horarios.keys()), key="prof_edit_sel")
+        
+        if prof_edit:
+            df_prof = pd.DataFrame(horarios[prof_edit])
+            franja_sel = st.selectbox("Selecciona la Franja Horaria:", df_prof['Hora'].tolist())
+            dia_sel = st.selectbox("Selecciona el Día de la Semana:", ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"])
+            
+            idx_franja = df_prof[df_prof['Hora'] == franja_sel].index[0]
+            val_actual = df_prof.at[idx_franja, dia_sel]
+            
+            nuevo_valor_clase = st.text_input(f"Clase/Alumno asignado para el {dia_sel} a las {franja_sel}:", value=val_actual)
+            
+            if st.button("💾 Guardar Cambio en el Horario"):
+                horarios[prof_edit][idx_franja][dia_sel] = nuevo_valor_clase
+                with open(HORARIOS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(horarios, f, ensure_ascii=False, indent=2)
+                st.success(f"¡Horario de {prof_edit} actualizado con éxito! ✅")
+                st.rerun()
 
 # ---------------------------------------------------------
-# 9. RECORDATORIOS Y CIRCULARES
+# 10. RECORDATORIOS Y CIRCULARES
 # ---------------------------------------------------------
 elif menu == "📌 Recordatorios Activos":
     st.subheader("📌 Tareas Pendientes y Alertas de Telegram")
