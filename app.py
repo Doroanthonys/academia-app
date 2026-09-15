@@ -23,7 +23,7 @@ def enviar_notificacion_telegram(mensaje):
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje, "parse_mode": "Markdown"}
     try:
         requests.post(url, json=payload, timeout=5)
-    except Exception as e:
+    except Exception:
         pass
 
 # Estilos CSS Modernos
@@ -55,10 +55,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. BASE DE DATOS COMPLETA DE ALUMNOS (102 ALUMNOS)
+# 2. ARCHIVOS PERSISTENTES DE ALUMNOS Y RECORDATORIOS
 # ---------------------------------------------------------
 DATA_FILE = "alumnos_data.csv"
 REC_FILE = "recordatorios.json"
+HORARIOS_FILE = "horarios_data.json"
 
 def obtener_102_alumnos():
     return [
@@ -166,6 +167,7 @@ def obtener_102_alumnos():
         {"Matrícula": "21173", "Nombre": "PALOMA", "Primer Apellido": "UGARTE", "Segundo Apellido": "GARCIA", "Teléfono": "673525726", "Fecha Alta": "04/06/2026"}
     ]
 
+# Carga de alumnos
 if not os.path.exists(DATA_FILE):
     df_init = pd.DataFrame(obtener_102_alumnos())
     df_init.to_csv(DATA_FILE, index=False)
@@ -185,60 +187,68 @@ with open(REC_FILE, "r") as f:
     recordatorios = json.load(f)
 
 # ---------------------------------------------------------
-# 3. BASE DE DATOS ACTUALIZADA DE HORARIOS (7 PROFESORES)
+# 3. BASE DE DATOS EDITABLE DE HORARIOS
 # ---------------------------------------------------------
-horarios = {
-    "Doro": [
-        {"Hora": "10:00-11:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "-"},
-        {"Hora": "13:00-14:00", "Lunes": "-", "Martes": "-", "Miércoles": "Iria Cibeiro C-1", "Jueves": "-", "Viernes": "-"},
-        {"Hora": "15:00-16:00", "Lunes": "-", "Martes": "Grupo 4ºeso C-1", "Miércoles": "Mauro Mendez 4ºeso marista", "Jueves": "Grupo 4ºeso C-1", "Viernes": "-"},
-        {"Hora": "16:00-17:00", "Lunes": "Grupo Marga", "Martes": "Grupo 1º/2ºeso b-1", "Miércoles": "Grupo 1º/2ºeso b-1", "Jueves": "Grupo 1º/2ºeso b-1", "Viernes": "Grupo 1º/2ºeso b-1"},
-        {"Hora": "17:00-18:00", "Lunes": "Grupo 1º/2º", "Martes": "Grupo 1º eso", "Miércoles": "Grupo 1º/2ºeso b-2", "Jueves": "-", "Viernes": "Grupo 1º/2ºeso b-2"},
-        {"Hora": "18:00-19:00", "Lunes": "Grupo 4º C1", "Martes": "Felix Vadillo 4ºeso Miraflores b-2", "Miércoles": "Grupo C-1 4ºeso/1ºb", "Jueves": "Grupo 6º/1ºeso", "Viernes": "-"}
-    ],
-    "Enma": [
-        {"Hora": "15:00-16:00", "Lunes": "Iago Merelles 5 prima Fcs", "Martes": "-", "Miércoles": "Iago Merelles 5 prima Fcs", "Jueves": "-", "Viernes": "Carmen Gnz GNZ Maristas"},
-        {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "Diego Rial 4º eso couto"},
-        {"Hora": "18:00-19:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "Hugo Outeriño 2º ESO"}
-    ],
-    "Ignacio": [
-        {"Hora": "19:00-20:00", "Lunes": "Santi y Diego", "Martes": "Santi y Diego", "Miércoles": "Diego Gnz Gnz 6º pri", "Jueves": "-", "Viernes": "Sasha Iglesias 5º josefinas"}
-    ],
-    "Iria": [
-        {"Hora": "10:00-11:00", "Lunes": "-", "Martes": "-", "Miércoles": "Natalia Santas Tr-7 online", "Jueves": "-", "Viernes": "Natalia Santas Tr-7 online"},
-        {"Hora": "11:00-12:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "Javier Carballo"},
-        {"Hora": "12:00-13:00", "Lunes": "-", "Martes": "-", "Miércoles": "Javier Carballo", "Jueves": "-", "Viernes": "-"},
-        {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "Sofia", "Miércoles": "Irati A2 5 PRI MIRAFLORES", "Jueves": "Alba Medela 2ºeso josefinas", "Viernes": "Andre & Martin 2ºeso lagunas b-1"},
-        {"Hora": "17:00-18:00", "Lunes": "-", "Martes": "Begoña Gomez adult", "Miércoles": "Alvaro Gomez 1ºb lagunas", "Jueves": "Alberto Novoa 1ºb marista C-1", "Viernes": "-"},
-        {"Hora": "18:00-19:00", "Lunes": "-", "Martes": "Luis Uruburu 3ºeso", "Miércoles": "Grupo 4º/5º", "Jueves": "Samuel 1º BACH B2", "Viernes": "-"},
-        {"Hora": "19:00-20:00", "Lunes": "-", "Martes": "Jimena 4º Padre Feijoo", "Miércoles": "Eva Boada Online", "Jueves": "Luis Uruburu 3ºeso", "Viernes": "-"},
-        {"Hora": "20:00-21:00", "Lunes": "-", "Martes": "Alejandro Su. 4ºeso b-1 Online", "Miércoles": "Irene Pazos", "Jueves": "-", "Viernes": "-"}
-    ],
-    "Isa": [
-        {"Hora": "10:00-11:00", "Lunes": "-", "Martes": "Agustina", "Miércoles": "-", "Jueves": "Agustina", "Viernes": "-"},
-        {"Hora": "14:00-15:00", "Lunes": "-", "Martes": "Lucia Carneiro", "Miércoles": "-", "Jueves": "Lucia Carneiro", "Viernes": "-"},
-        {"Hora": "15:00-16:00", "Lunes": "-", "Martes": "Iraia", "Miércoles": "Alex Y Adri 2 eso maristas", "Jueves": "Daniela online 1º bacj", "Viernes": "Alex Y Adri 2 eso maristas"},
-        {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "Anxo y Marcos", "Miércoles": "Javier o grupo", "Jueves": "Pablo Med. 2ºb marista", "Viernes": "Xiana Y Xoel 1º eso maristas b-1"},
-        {"Hora": "17:00-18:00", "Lunes": "Grupo 3º", "Martes": "Iñaki Merelles b-2 Dic", "Miércoles": "Iñaki Merelles b-2 Dic", "Jueves": "Grupo restaurante", "Viernes": "Sofia carmelitas b2"},
-        {"Hora": "18:00-19:00", "Lunes": "Grupo 6º/1ºeso", "Martes": "Manuel Palomo 4ºeso marista", "Miércoles": "Alejandro Nesp. 2ºeso coles", "Jueves": "Grupo 2º/3º", "Viernes": "Ada 1ºb Otero"},
-        {"Hora": "19:00-20:00", "Lunes": "Eva Vilavoy", "Martes": "Antonio Quintas 3ºeso miraflores", "Miércoles": "Borja Lorenzo 3ºeso miraflores", "Jueves": "Antonio Quintas 3ºeso miraflores", "Viernes": "-"},
-        {"Hora": "20:00-21:00", "Lunes": "-", "Martes": "-", "Miércoles": "Miguel Anxo b-2", "Jueves": "-", "Viernes": "-"},
-        {"Hora": "21:00-22:00", "Lunes": "-", "Martes": "-", "Miércoles": "Miguel Anxo b-2 / Ana Fdez", "Jueves": "-", "Viernes": "-"}
-    ],
-    "Ivan": [
-        {"Hora": "12:00-13:00", "Lunes": "-", "Martes": "-", "Miércoles": "Emilio", "Jueves": "-", "Viernes": "-"},
-        {"Hora": "14:00-15:00", "Lunes": "-", "Martes": "Emilio online", "Miércoles": "-", "Jueves": "-", "Viernes": "-"},
-        {"Hora": "15:00-16:00", "Lunes": "-", "Martes": "Lucas Alv. / Alvaro Folla 1ºb maristas", "Miércoles": "Marc Pacreu 1ºb francis C-1 cole", "Jueves": "Paula Gomez 1ºeso", "Viernes": "-"},
-        {"Hora": "16:00-17:00", "Lunes": "Hugo Vila online", "Martes": "Elena Guzman B2", "Miércoles": "-", "Jueves": "Alvaro garcia 3ºeso marista b-1 cole", "Viernes": "-"},
-        {"Hora": "17:00-18:00", "Lunes": "Grupo 5º/6º", "Martes": "Blanca Garcia", "Miércoles": "Sabela Fernandez", "Jueves": "Grupo 2º/3ºeso", "Viernes": "-"},
-        {"Hora": "18:00-19:00", "Lunes": "Grupo 2º/3ºeso", "Martes": "Grupo 4º/5º", "Miércoles": "-", "Jueves": "Grupo 4º/5º", "Viernes": "-"},
-        {"Hora": "19:00-20:00", "Lunes": "Xurxo 1ºeso / Anxo 3ºeso", "Martes": "Grupo 1º/2ºb", "Miércoles": "Alfonso Alvarez", "Jueves": "Grupo 1º2ºb", "Viernes": "-"},
-        {"Hora": "20:00-21:00", "Lunes": "-", "Martes": "Sarela Rua 3ºeso lagunas", "Miércoles": "Alvaro Guzman b2 diciembre", "Jueves": "Sarela Rua 3ºeso lagunas", "Viernes": "-"}
-    ],
-    "Natalia": [
-        {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "Diego hijo sonia", "Miércoles": "Brais / Mateo Serrante 2º bch / Iago Garcia 3º Eso", "Jueves": "Noel 1º eso / Guillerme", "Viernes": "Brais / Cesar menor / Iago Garcia 3º Eso"}
-    ]
-}
+def obtener_horarios_iniciales():
+    return {
+        "Doro": [
+            {"Hora": "10:00-11:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "-"},
+            {"Hora": "13:00-14:00", "Lunes": "-", "Martes": "-", "Miércoles": "Iria Cibeiro C-1", "Jueves": "-", "Viernes": "-"},
+            {"Hora": "15:00-16:00", "Lunes": "-", "Martes": "Grupo 4ºeso C-1", "Miércoles": "Mauro Mendez 4ºeso marista", "Jueves": "Grupo 4ºeso C-1", "Viernes": "-"},
+            {"Hora": "16:00-17:00", "Lunes": "Grupo Marga", "Martes": "Grupo 1º/2ºeso b-1", "Miércoles": "Grupo 1º/2ºeso b-1", "Jueves": "Grupo 1º/2ºeso b-1", "Viernes": "Grupo 1º/2ºeso b-1"},
+            {"Hora": "17:00-18:00", "Lunes": "Grupo 1º/2º", "Martes": "Grupo 1º eso", "Miércoles": "Grupo 1º/2ºeso b-2", "Jueves": "-", "Viernes": "Grupo 1º/2ºeso b-2"},
+            {"Hora": "18:00-19:00", "Lunes": "Grupo 4º C1", "Martes": "Felix Vadillo 4ºeso Miraflores b-2", "Miércoles": "Grupo C-1 4ºeso/1ºb", "Jueves": "Grupo 6º/1ºeso", "Viernes": "-"}
+        ],
+        "Enma": [
+            {"Hora": "15:00-16:00", "Lunes": "Iago Merelles 5 prima Fcs", "Martes": "-", "Miércoles": "Iago Merelles 5 prima Fcs", "Jueves": "-", "Viernes": "Carmen Gnz GNZ Maristas"},
+            {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "Diego Rial 4º eso couto"},
+            {"Hora": "18:00-19:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "Hugo Outeriño 2º ESO"}
+        ],
+        "Ignacio": [
+            {"Hora": "19:00-20:00", "Lunes": "Santi y Diego", "Martes": "Santi y Diego", "Miércoles": "Diego Gnz Gnz 6º pri", "Jueves": "-", "Viernes": "Sasha Iglesias 5º josefinas"}
+        ],
+        "Iria": [
+            {"Hora": "10:00-11:00", "Lunes": "-", "Martes": "-", "Miércoles": "Natalia Santas Tr-7 online", "Jueves": "-", "Viernes": "Natalia Santas Tr-7 online"},
+            {"Hora": "11:00-12:00", "Lunes": "-", "Martes": "-", "Miércoles": "-", "Jueves": "-", "Viernes": "Javier Carballo"},
+            {"Hora": "12:00-13:00", "Lunes": "-", "Martes": "-", "Miércoles": "Javier Carballo", "Jueves": "-", "Viernes": "-"},
+            {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "Sofia", "Miércoles": "Irati A2 5 PRI MIRAFLORES", "Jueves": "Alba Medela 2ºeso josefinas", "Viernes": "Andre & Martin 2ºeso lagunas b-1"},
+            {"Hora": "17:00-18:00", "Lunes": "-", "Martes": "Begoña Gomez adult", "Miércoles": "Alvaro Gomez 1ºb lagunas", "Jueves": "Alberto Novoa 1ºb marista C-1", "Viernes": "-"},
+            {"Hora": "18:00-19:00", "Lunes": "-", "Martes": "Luis Uruburu 3ºeso", "Miércoles": "Grupo 4º/5º", "Jueves": "Samuel 1º BACH B2", "Viernes": "-"},
+            {"Hora": "19:00-20:00", "Lunes": "-", "Martes": "Jimena 4º Padre Feijoo", "Miércoles": "Eva Boada Online", "Jueves": "Luis Uruburu 3ºeso", "Viernes": "-"},
+            {"Hora": "20:00-21:00", "Lunes": "-", "Martes": "Alejandro Su. 4ºeso b-1 Online", "Miércoles": "Irene Pazos", "Jueves": "-", "Viernes": "-"}
+        ],
+        "Isa": [
+            {"Hora": "10:00-11:00", "Lunes": "-", "Martes": "Agustina", "Miércoles": "-", "Jueves": "Agustina", "Viernes": "-"},
+            {"Hora": "14:00-15:00", "Lunes": "-", "Martes": "Lucia Carneiro", "Miércoles": "-", "Jueves": "Lucia Carneiro", "Viernes": "-"},
+            {"Hora": "15:00-16:00", "Lunes": "-", "Martes": "Iraia", "Miércoles": "Alex Y Adri 2 eso maristas", "Jueves": "Daniela online 1º bacj", "Viernes": "Alex Y Adri 2 eso maristas"},
+            {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "Anxo y Marcos", "Miércoles": "Javier o grupo", "Jueves": "Pablo Med. 2ºb marista", "Viernes": "Xiana Y Xoel 1º eso maristas b-1"},
+            {"Hora": "17:00-18:00", "Lunes": "Grupo 3º", "Martes": "Iñaki Merelles b-2 Dic", "Miércoles": "Iñaki Merelles b-2 Dic", "Jueves": "Grupo restaurante", "Viernes": "Sofia carmelitas b2"},
+            {"Hora": "18:00-19:00", "Lunes": "Grupo 6º/1ºeso", "Martes": "Manuel Palomo 4ºeso marista", "Miércoles": "Alejandro Nesp. 2ºeso coles", "Jueves": "Grupo 2º/3º", "Viernes": "Ada 1ºb Otero"},
+            {"Hora": "19:00-20:00", "Lunes": "Eva Vilavoy", "Martes": "Antonio Quintas 3ºeso miraflores", "Miércoles": "Borja Lorenzo 3ºeso miraflores", "Jueves": "Antonio Quintas 3ºeso miraflores", "Viernes": "-"},
+            {"Hora": "20:00-21:00", "Lunes": "-", "Martes": "-", "Miércoles": "Miguel Anxo b-2", "Jueves": "-", "Viernes": "-"},
+            {"Hora": "21:00-22:00", "Lunes": "-", "Martes": "-", "Miércoles": "Miguel Anxo b-2 / Ana Fdez", "Jueves": "-", "Viernes": "-"}
+        ],
+        "Ivan": [
+            {"Hora": "12:00-13:00", "Lunes": "-", "Martes": "-", "Miércoles": "Emilio", "Jueves": "-", "Viernes": "-"},
+            {"Hora": "14:00-15:00", "Lunes": "-", "Martes": "Emilio online", "Miércoles": "-", "Jueves": "-", "Viernes": "-"},
+            {"Hora": "15:00-16:00", "Lunes": "-", "Martes": "Lucas Alv. / Alvaro Folla 1ºb maristas", "Miércoles": "Marc Pacreu 1ºb francis C-1 cole", "Jueves": "Paula Gomez 1ºeso", "Viernes": "-"},
+            {"Hora": "16:00-17:00", "Lunes": "Hugo Vila online", "Martes": "Elena Guzman B2", "Miércoles": "-", "Jueves": "Alvaro garcia 3ºeso marista b-1 cole", "Viernes": "-"},
+            {"Hora": "17:00-18:00", "Lunes": "Grupo 5º/6º", "Martes": "Blanca Garcia", "Miércoles": "Sabela Fernandez", "Jueves": "Grupo 2º/3ºeso", "Viernes": "-"},
+            {"Hora": "18:00-19:00", "Lunes": "Grupo 2º/3ºeso", "Martes": "Grupo 4º/5º", "Miércoles": "-", "Jueves": "Grupo 4º/5º", "Viernes": "-"},
+            {"Hora": "19:00-20:00", "Lunes": "Xurxo 1ºeso / Anxo 3ºeso", "Martes": "Grupo 1º/2ºb", "Miércoles": "Alfonso Alvarez", "Jueves": "Grupo 1º2ºb", "Viernes": "-"},
+            {"Hora": "20:00-21:00", "Lunes": "-", "Martes": "Sarela Rua 3ºeso lagunas", "Miércoles": "Alvaro Guzman b2 diciembre", "Jueves": "Sarela Rua 3ºeso lagunas", "Viernes": "-"}
+        ],
+        "Natalia": [
+            {"Hora": "16:00-17:00", "Lunes": "-", "Martes": "Diego hijo sonia", "Miércoles": "Brais / Mateo Serrante 2º bch / Iago Garcia 3º Eso", "Jueves": "Noel 1º eso / Guillerme", "Viernes": "Brais / Cesar menor / Iago Garcia 3º Eso"}
+        ]
+    }
+
+if not os.path.exists(HORARIOS_FILE):
+    with open(HORARIOS_FILE, "w", encoding="utf-8") as f:
+        json.dump(obtener_horarios_iniciales(), f, ensure_ascii=False, indent=2)
+
+with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
+    horarios = json.load(f)
 
 # ---------------------------------------------------------
 # 4. HEADER Y MENÚ DE NAVEGACIÓN
@@ -246,7 +256,7 @@ horarios = {
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado - Horarios de 7 Profesores y Alertas Telegram</div>
+        <div class='hero-subtitle'>Portal Integrado - Horarios Editables y Gestión Completa</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -259,7 +269,7 @@ with st.sidebar:
     st.markdown("### 📌 Navegación")
     menu = st.radio(
         "",
-        ["🏠 Buscador & Ficha Alumno", "🗓️ Horario de Profesores", "👥 Grupos de Clases", "🛠️ Editor de Alumnos (Móvil)", "📌 Recordatorios Activos", "📢 Enviar Circular General"]
+        ["🏠 Buscador & Ficha Alumno", "🗓️ Horario de Profesores", "👥 Grupos de Clases", "🛠️ Editor de Alumnos y Horarios", "📌 Recordatorios Activos", "📢 Enviar Circular General"]
     )
 
 # ---------------------------------------------------------
@@ -309,11 +319,11 @@ if menu == "🏠 Buscador & Ficha Alumno":
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 6. HORARIOS DE PROFESORES (7 PROFESORES COMPLETOS)
+# 6. HORARIOS DE PROFESORES
 # ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
-    profesor_sel = st.selectbox("Selecciona un Profesor:", ["Doro", "Enma", "Ignacio", "Iria", "Isa", "Ivan", "Natalia"])
+    profesor_sel = st.selectbox("Selecciona un Profesor:", list(horarios.keys()))
     
     if profesor_sel in horarios:
         df_horario = pd.DataFrame(horarios[profesor_sel])
@@ -335,47 +345,71 @@ elif menu == "👥 Grupos de Clases":
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
 # ---------------------------------------------------------
-# 8. EDITOR DE ALUMNOS (MÓVIL)
+# 8. EDITOR COMPLETO (ALUMNOS Y HORARIOS)
 # ---------------------------------------------------------
-elif menu == "🛠️ Editor de Alumnos (Móvil)":
-    st.subheader("🛠️ Añadir o Modificar Alumnos en Tiempo Real")
-    st.info("Los cambios que guardes aquí se actualizarán automáticamente para toda la plantilla.")
+elif menu == "🛠️ Editor de Alumnos y Horarios":
+    st.subheader("🛠️ Panel de Edición en Tiempo Real")
+    pestana = st.tabs(["🗓️ Modificar Horarios de Profesores", "👨‍🎓 Añadir / Editar Alumnos"])
     
-    opcion_ed = st.radio("Acción:", ["➕ Añadir Nuevo Alumno", "✏️ Editar Alumno Existente"])
-    
-    if opcion_ed == "➕ Añadir Nuevo Alumno":
-        with st.form("form_nuevo"):
-            n_mat = st.text_input("Número de Matrícula:")
-            n_nom = st.text_input("Nombre:")
-            n_ap1 = st.text_input("Primer Apellido:")
-            n_ap2 = st.text_input("Segundo Apellido:")
-            n_tel = st.text_input("Teléfono móvil:")
-            btn_guardar = st.form_submit_button("💾 Guardar Alumno")
+    with pestana[0]:
+        st.write("#### ✏️ Modificar Cuadrante de Clases")
+        prof_edit = st.selectbox("Selecciona Profesor a editar:", list(horarios.keys()), key="prof_edit_sel")
+        
+        if prof_edit:
+            df_prof = pd.DataFrame(horarios[prof_edit])
+            franja_sel = st.selectbox("Selecciona la Franja Horaria:", df_prof['Hora'].tolist())
+            dia_sel = st.selectbox("Selecciona el Día de la Semana:", ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"])
             
-            if btn_guardar:
-                nueva_fila = {"Matrícula": n_mat, "Nombre": n_nom.upper(), "Primer Apellido": n_ap1.upper(), "Segundo Apellido": n_ap2.upper(), "Teléfono": n_tel, "Fecha Alta": datetime.now().strftime("%d/%m/%Y")}
-                df_alumnos = pd.concat([df_alumnos, pd.DataFrame([nueva_fila])], ignore_index=True)
-                df_alumnos.to_csv(DATA_FILE, index=False)
-                st.success(f"Alumno {n_nom} registrado y sincronizado ✅")
+            # Obtener valor actual
+            idx_franja = df_prof[df_prof['Hora'] == franja_sel].index[0]
+            val_actual = df_prof.at[idx_franja, dia_sel]
+            
+            nuevo_valor_clase = st.text_input(f"Clase/Alumno asignado para el {dia_sel} a las {franja_sel}:", value=val_actual)
+            
+            if st.button("💾 Guardar Cambio en el Horario"):
+                horarios[prof_edit][idx_franja][dia_sel] = nuevo_valor_clase
+                with open(HORARIOS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(horarios, f, ensure_ascii=False, indent=2)
+                st.success(f"¡Horario de {prof_edit} actualizado con éxito! ✅")
+                st.rerun()
 
-    elif opcion_ed == "✏️ Editar Alumno Existente":
-        sel_alum = st.selectbox("Selecciona alumno:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
-        if sel_alum:
-            mat_sel = sel_alum.split(" - ")[0]
-            idx_alum = df_alumnos[df_alumnos['Matrícula'] == mat_sel].index[0]
-            
-            with st.form("form_edit"):
-                e_nom = st.text_input("Nombre:", value=df_alumnos.at[idx_alum, 'Nombre'])
-                e_ap1 = st.text_input("Primer Apellido:", value=df_alumnos.at[idx_alum, 'Primer Apellido'])
-                e_tel = st.text_input("Teléfono:", value=df_alumnos.at[idx_alum, 'Teléfono'])
-                btn_mod = st.form_submit_button("🔄 Actualizar Datos")
+    with pestana[1]:
+        st.write("#### 👨‍🎓 Gestión de Alumnos")
+        opcion_ed = st.radio("Acción:", ["➕ Añadir Nuevo Alumno", "✏️ Editar Alumno Existente"])
+        
+        if opcion_ed == "➕ Añadir Nuevo Alumno":
+            with st.form("form_nuevo"):
+                n_mat = st.text_input("Número de Matrícula:")
+                n_nom = st.text_input("Nombre:")
+                n_ap1 = st.text_input("Primer Apellido:")
+                n_ap2 = st.text_input("Segundo Apellido:")
+                n_tel = st.text_input("Teléfono móvil:")
+                btn_guardar = st.form_submit_button("💾 Guardar Alumno")
                 
-                if btn_mod:
-                    df_alumnos.at[idx_alum, 'Nombre'] = e_nom.upper()
-                    df_alumnos.at[idx_alum, 'Primer Apellido'] = e_ap1.upper()
-                    df_alumnos.at[idx_alum, 'Teléfono'] = e_tel
+                if btn_guardar:
+                    nueva_fila = {"Matrícula": n_mat, "Nombre": n_nom.upper(), "Primer Apellido": n_ap1.upper(), "Segundo Apellido": n_ap2.upper(), "Teléfono": n_tel, "Fecha Alta": datetime.now().strftime("%d/%m/%Y")}
+                    df_alumnos = pd.concat([df_alumnos, pd.DataFrame([nueva_fila])], ignore_index=True)
                     df_alumnos.to_csv(DATA_FILE, index=False)
-                    st.success("Datos actualizados correctamente ✅")
+                    st.success(f"Alumno {n_nom} registrado y sincronizado ✅")
+
+        elif opcion_ed == "✏️ Editar Alumno Existente":
+            sel_alum = st.selectbox("Selecciona alumno:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
+            if sel_alum:
+                mat_sel = sel_alum.split(" - ")[0]
+                idx_alum = df_alumnos[df_alumnos['Matrícula'] == mat_sel].index[0]
+                
+                with st.form("form_edit"):
+                    e_nom = st.text_input("Nombre:", value=df_alumnos.at[idx_alum, 'Nombre'])
+                    e_ap1 = st.text_input("Primer Apellido:", value=df_alumnos.at[idx_alum, 'Primer Apellido'])
+                    e_tel = st.text_input("Teléfono:", value=df_alumnos.at[idx_alum, 'Teléfono'])
+                    btn_mod = st.form_submit_button("🔄 Actualizar Datos")
+                    
+                    if btn_mod:
+                        df_alumnos.at[idx_alum, 'Nombre'] = e_nom.upper()
+                        df_alumnos.at[idx_alum, 'Primer Apellido'] = e_ap1.upper()
+                        df_alumnos.at[idx_alum, 'Teléfono'] = e_tel
+                        df_alumnos.to_csv(DATA_FILE, index=False)
+                        st.success("Datos actualizados correctamente ✅")
 
 # ---------------------------------------------------------
 # 9. RECORDATORIOS Y CIRCULARES
