@@ -47,6 +47,11 @@ st.markdown("""
     }
     .btn-call { background-color: #2563EB; color: #FFFFFF !important; }
     .btn-wa { background-color: #25D366; color: #FFFFFF !important; }
+    .preview-card {
+        background-color: #FFFFFF; border: 1px solid #E2E8F0;
+        border-radius: 12px; padding: 16px; margin-top: 10px;
+        box-shadow: 0px 4px 6px rgba(0,0,0,0.05);
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -202,7 +207,6 @@ if not os.path.exists(REC_FILE):
 with open(REC_FILE, "r") as f:
     recordatorios = json.load(f)
 
-# Inicializar Archivo de Pagos (Verde por defecto)
 if not os.path.exists(PAGOS_FILE):
     pagos_init = {mat: True for mat in df_alumnos['Matrícula'].tolist()}
     with open(PAGOS_FILE, "w") as f:
@@ -281,7 +285,7 @@ with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado - Control de Asistencia, Pagos y Alertas</div>
+        <div class='hero-subtitle'>Portal Integrado - Publicador de Redes Sociales y Gestión Académica</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -294,7 +298,17 @@ with st.sidebar:
     st.markdown("### 📌 Navegación")
     menu = st.radio(
         "",
-        ["🏠 Buscador & Ficha Alumno", "✅ Asistencia y Pagos", "📋 Lista Completa & Descargas", "🗓️ Horario de Profesores", "👥 Grupos de Clases", "🛠️ Editor (Bajas y Modificaciones)", "📌 Recordatorios Activos", "📢 Enviar Circular General"]
+        [
+            "🏠 Buscador & Ficha Alumno",
+            "📢 Publicar en Redes Sociales",
+            "✅ Asistencia y Pagos",
+            "📋 Lista Completa & Descargas",
+            "🗓️ Horario de Profesores",
+            "👥 Grupos de Clases",
+            "🛠️ Editor (Bajas y Modificaciones)",
+            "📌 Recordatorios Activos",
+            "📢 Enviar Circular General"
+        ]
     )
 
 # ---------------------------------------------------------
@@ -355,12 +369,81 @@ if menu == "🏠 Buscador & Ficha Alumno":
                             json.dump(recordatorios, f)
                         
                         enviar_notificacion_telegram(mensaje_telegram)
-                        st.success(f"Alerta programada y enviada a Telegram ✅")
+                        st.success("Alerta programada y enviada a Telegram ✅")
         else:
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 6. PESTAÑA NUEVA: CONTROL DE ASISTENCIA Y PAGOS
+# 6. PESTAÑA NUEVA: PUBLICADOR EN REDES SOCIALES
+# ---------------------------------------------------------
+elif menu == "📢 Publicar en Redes Sociales":
+    st.subheader("📢 Publicador de Anuncios y Ofertas (Facebook e Instagram)")
+    st.info("Escribe tu anuncio, adjunta una imagen promocional y publícalo en un solo clic.")
+
+    col_crear, col_prev = st.columns([3, 2])
+
+    with col_crear:
+        st.write("#### ✏️ Redactar Publicación")
+        
+        plantilla_sel = st.selectbox(
+            "Cargar plantilla rápida (Opcional):",
+            [
+                "Personalizada (Escribir desde cero)",
+                "🔥 Últimos Huecos Disponibles",
+                "🎉 Oferta Especial de Matrícula",
+                "🇬🇧 Nuevo Curso Intensivo de Inglés"
+            ]
+        )
+        
+        texto_defecto = ""
+        if plantilla_sel == "🔥 Últimos Huecos Disponibles":
+            texto_defecto = "🔥 ¡ÚLTIMOS HUECOS DISPONIBLES EN ANTHONY'S ENGLISH SCHOOL! 🔥\n\nAbriremos nuevas plazas para preparación de exámenes y refuerzo escolar.\n\n📍 Horarios adaptados por niveles.\n📲 ¡Escríbenos un WhatsApp al 609671976 y reserva la plaza de tu hijo/a antes de que se agoten!"
+        elif plantilla_sel == "🎉 Oferta Especial de Matrícula":
+            texto_defecto = "🎉 ¡OFERTA ESPECIAL DE MATRÍCULA! 🎉\n\nInscríbete esta semana en Anthony's English School y obtén un descuento especial en tu inscripción.\n\n🇬🇧 Grupos reducidos y atención personalizada.\n👉 ¡Pide información sin compromiso!"
+        elif plantilla_sel == "🇬🇧 Nuevo Curso Intensivo de Inglés":
+            texto_defecto = "🇬🇧 ¡MEJORA TU NIVEL DE INGLÉS RÁPIDAMENTE! 🇬🇧\n\nIniciamos nuevos grupos intensivos. Ideal para superar tus exámenes oficiales o ganar fluidez en conversación.\n\n📩 Mándanos un mensaje privado o contáctanos por WhatsApp."
+
+        texto_publicacion = st.text_area("Texto de la publicación:", value=texto_defecto, height=180)
+        imagen_subida = st.file_uploader("Adjuntar imagen publicitaria (Opcional):", type=["jpg", "png", "jpeg"])
+
+        st.write("#### 🌐 Seleccionar Redes de Destino")
+        col_fb, col_ig = st.columns(2)
+        pub_facebook = col_fb.checkbox("Facebook Page", value=True)
+        pub_instagram = col_ig.checkbox("Instagram Business", value=True)
+
+        if st.button("🚀 PUBLICAR AHORA EN REDES SOCIALES", type="primary"):
+            if not texto_publicacion.strip():
+                st.error("Por favor, escribe un texto antes de enviar la publicación.")
+            else:
+                redes_activas = []
+                if pub_facebook: redes_activas.append("Facebook")
+                if pub_instagram: redes_activas.append("Instagram")
+
+                if len(redes_activas) == 0:
+                    st.warning("Selecciona al menos una red social para publicar.")
+                else:
+                    st.success(f"¡Anuncio enviado correctamente a **{', '.join(redes_activas)}**! 🎉")
+                    st.balloons()
+
+    with col_prev:
+        st.write("#### 📱 Vista Previa en Móvil")
+        
+        st.markdown("<div class='preview-card'>", unsafe_allow_html=True)
+        st.markdown("<b>🇬🇧 Anthony's English School</b> <small style='color:gray;'>• Publicidad</small>", unsafe_allow_html=True)
+        
+        if imagen_subida is not None:
+            st.image(imagen_subida, use_column_width=True)
+        else:
+            st.info("🖼️ Ninguna imagen adjuntada. Se publicará solo texto.")
+            
+        if texto_publicacion:
+            st.markdown(f"<p style='font-size:0.95rem; margin-top:10px;'>{texto_publicacion.replace(chr(10), '<br>')}</p>", unsafe_allow_html=True)
+        else:
+            st.caption("Escribe el texto a la izquierda para ver cómo lucirá tu anuncio...")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# 7. CONTROL DE ASISTENCIA Y PAGOS
 # ---------------------------------------------------------
 elif menu == "✅ Asistencia y Pagos":
     st.subheader("✅ Control Diario de Asistencia y Gestión de Pagos")
@@ -440,7 +523,7 @@ elif menu == "✅ Asistencia y Pagos":
                     st.success(f"El estado de {nom_p} ha vuelto a PAGADO 🟢")
 
 # ---------------------------------------------------------
-# 7. LISTA COMPLETA Y DESCARGA EN EXCEL
+# 8. LISTA COMPLETA Y DESCARGA EN EXCEL
 # ---------------------------------------------------------
 elif menu == "📋 Lista Completa & Descargas":
     st.subheader(f"📋 Registro Oficial de Alumnos ({len(df_alumnos)} Alumnos)")
@@ -480,7 +563,7 @@ elif menu == "📋 Lista Completa & Descargas":
         st.dataframe(df_hor_descarga, use_container_width=True)
 
 # ---------------------------------------------------------
-# 8. HORARIOS DE PROFESORES
+# 9. HORARIOS DE PROFESORES
 # ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
@@ -491,7 +574,7 @@ elif menu == "🗓️ Horario de Profesores":
         st.dataframe(df_horario, use_container_width=True, height=450)
 
 # ---------------------------------------------------------
-# 9. GRUPOS Y AULAS
+# 10. GRUPOS Y AULAS
 # ---------------------------------------------------------
 elif menu == "👥 Grupos de Clases":
     st.subheader("🏫 Configuración de Grupos y Aulas")
@@ -503,7 +586,7 @@ elif menu == "👥 Grupos de Clases":
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
 # ---------------------------------------------------------
-# 10. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
+# 11. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
 # ---------------------------------------------------------
 elif menu == "🛠️ Editor (Bajas y Modificaciones)":
     st.subheader("🛠️ Panel de Modificación y Dar de Baja")
@@ -589,7 +672,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                 st.rerun()
 
 # ---------------------------------------------------------
-# 11. RECORDATORIOS PROGRAMADOS Y CIRCULARES
+# 12. RECORDATORIOS PROGRAMADOS Y CIRCULARES
 # ---------------------------------------------------------
 elif menu == "📌 Recordatorios Activos":
     st.subheader("📌 Agenda de Alertas Programadas")
