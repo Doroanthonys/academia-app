@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-from datetime import datetime
+from datetime import datetime, date, time
 import json
 import os
 import io
@@ -39,11 +39,6 @@ st.markdown("""
     }
     .hero-title { font-size: 2.1rem; font-weight: 800; margin: 0; }
     .hero-subtitle { font-size: 1rem; opacity: 0.9; margin-top: 4px; }
-    .student-card {
-        background-color: #FFFFFF; border-radius: 12px; padding: 16px 20px;
-        border-left: 5px solid #2563EB; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.04);
-        margin-bottom: 12px;
-    }
     .btn-action {
         display: inline-flex; align-items: center; justify-content: center;
         width: 100%; padding: 10px 14px; border-radius: 8px; font-weight: 700;
@@ -56,13 +51,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. ARCHIVOS PERSISTENTES DE ALUMNOS Y RECORDATORIOS
+# 2. BASE DE DATOS DE ALUMNOS Y ARCHIVOS
 # ---------------------------------------------------------
 DATA_FILE = "alumnos_data.csv"
 REC_FILE = "recordatorios.json"
 HORARIOS_FILE = "horarios_data.json"
 
-def obtener_102_alumnos():
+def obtener_alumnos_con_nuevos():
     return [
         {"Matrícula": "579", "Nombre": "LUCIA", "Primer Apellido": "PENAS", "Segundo Apellido": "LORENZO", "Teléfono": "609671976", "Fecha Alta": "02/10/2019"},
         {"Matrícula": "601", "Nombre": "RODRIGO", "Primer Apellido": "LOPEZ", "Segundo Apellido": "CID", "Teléfono": "630653659", "Fecha Alta": "12/11/2014"},
@@ -165,16 +160,36 @@ def obtener_102_alumnos():
         {"Matrícula": "21119", "Nombre": "BEATRIZ", "Primer Apellido": "GONTAD", "Segundo Apellido": "CURROS", "Teléfono": "653070592", "Fecha Alta": "11/09/2024"},
         {"Matrícula": "21146", "Nombre": "EVA", "Primer Apellido": "ALVITE", "Segundo Apellido": "VILABOY", "Teléfono": "620372394", "Fecha Alta": "17/10/2024"},
         {"Matrícula": "21166", "Nombre": "HUGO", "Primer Apellido": "VAZQUEZ", "Segundo Apellido": "VILA", "Teléfono": "626150544", "Fecha Alta": "01/10/2025"},
-        {"Matrícula": "21173", "Nombre": "PALOMA", "Primer Apellido": "UGARTE", "Segundo Apellido": "GARCIA", "Teléfono": "673525726", "Fecha Alta": "04/06/2026"}
+        {"Matrícula": "21173", "Nombre": "PALOMA", "Primer Apellido": "UGARTE", "Segundo Apellido": "GARCIA", "Teléfono": "673525726", "Fecha Alta": "04/06/2026"},
+
+        # --- 18 NUEVOS ALUMNOS ---
+        {"Matrícula": "1008", "Nombre": "RUBEN", "Primer Apellido": "CASADO", "Segundo Apellido": "FERNANDEZ", "Teléfono": "626546199", "Fecha Alta": "22/09/2024"},
+        {"Matrícula": "1043", "Nombre": "ALEJANDRA", "Primer Apellido": "CANAL", "Segundo Apellido": "DOMINGUEZ", "Teléfono": "606353218", "Fecha Alta": "24/09/2024"},
+        {"Matrícula": "1055", "Nombre": "MAURO", "Primer Apellido": "DIAZ", "Segundo Apellido": "FERNANDEZ", "Teléfono": "666563610", "Fecha Alta": "24/09/2024"},
+        {"Matrícula": "1080", "Nombre": "LUANA EN", "Primer Apellido": "BAO", "Segundo Apellido": "XIA", "Teléfono": "618643807", "Fecha Alta": "24/09/2024"},
+        {"Matrícula": "1081", "Nombre": "LUKE", "Primer Apellido": "BAO", "Segundo Apellido": "XIA", "Teléfono": "618643807", "Fecha Alta": "24/09/2024"},
+        {"Matrícula": "1082", "Nombre": "LUCA", "Primer Apellido": "BAO", "Segundo Apellido": "XIA", "Teléfono": "618643807", "Fecha Alta": "24/09/2024"},
+        {"Matrícula": "1092", "Nombre": "LIA", "Primer Apellido": "MIGUEZ", "Segundo Apellido": "GOMEZ", "Teléfono": "687912772", "Fecha Alta": "24/09/2024"},
+        {"Matrícula": "1101", "Nombre": "ZOE", "Primer Apellido": "PARK", "Segundo Apellido": "DO", "Teléfono": "988064432", "Fecha Alta": "27/09/2024"},
+        {"Matrícula": "1117", "Nombre": "ADRIAN", "Primer Apellido": "ALVAREZ", "Segundo Apellido": "CARBALLAL", "Teléfono": "607387571", "Fecha Alta": "23/09/2025"},
+        {"Matrícula": "1126", "Nombre": "MARCO", "Primer Apellido": "GABRIEL", "Segundo Apellido": "CID", "Teléfono": "609854509", "Fecha Alta": "24/09/2025"},
+        {"Matrícula": "1144", "Nombre": "MIKEL", "Primer Apellido": "GOMEZ", "Segundo Apellido": "BREA", "Teléfono": "652895437", "Fecha Alta": "21/11/2025"},
+        {"Matrícula": "1146", "Nombre": "ANDREA", "Primer Apellido": "PEREZ", "Segundo Apellido": "", "Teléfono": "6163321463", "Fecha Alta": "11/12/2025"},
+        {"Matrícula": "1147", "Nombre": "CLOE", "Primer Apellido": "RODRIGUEZ", "Segundo Apellido": "PALLA", "Teléfono": "661467904", "Fecha Alta": "13/04/2026"},
+        {"Matrícula": "10492", "Nombre": "MARIO", "Primer Apellido": "SARMIENTO", "Segundo Apellido": "", "Teléfono": "636220698", "Fecha Alta": "27/09/2017"},
+        {"Matrícula": "10642", "Nombre": "IÑAKI", "Primer Apellido": "MERELLES", "Segundo Apellido": "IGLESIAS", "Teléfono": "697326165", "Fecha Alta": "30/09/2021"},
+        {"Matrícula": "10658", "Nombre": "ALBERTO", "Primer Apellido": "NOVOA", "Segundo Apellido": "ALVAREZ", "Teléfono": "647251628", "Fecha Alta": "30/09/2021"},
+        {"Matrícula": "21050", "Nombre": "BEGOÑA", "Primer Apellido": "TEJERO", "Segundo Apellido": "MIGUEZ", "Teléfono": "678892964", "Fecha Alta": "30/09/2021"},
+        {"Matrícula": "21139", "Nombre": "IRIA", "Primer Apellido": "CIBREIRO", "Segundo Apellido": "TRIGO", "Teléfono": "636006448", "Fecha Alta": "23/09/2024"}
     ]
 
 if not os.path.exists(DATA_FILE):
-    df_init = pd.DataFrame(obtener_102_alumnos())
+    df_init = pd.DataFrame(obtener_alumnos_con_nuevos())
     df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 else:
     df_check = pd.read_csv(DATA_FILE, dtype=str)
-    if len(df_check) < 100:
-        df_init = pd.DataFrame(obtener_102_alumnos())
+    if len(df_check) < 115:
+        df_init = pd.DataFrame(obtener_alumnos_con_nuevos())
         df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 
 df_alumnos = pd.read_csv(DATA_FILE, dtype=str)
@@ -256,7 +271,7 @@ with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado - Horarios, Bajas y Descarga Directa Limpia</div>
+        <div class='hero-subtitle'>Portal Integrado - Programación de Avisos Fecha/Hora y Telegram</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -273,10 +288,10 @@ with st.sidebar:
     )
 
 # ---------------------------------------------------------
-# 5. BUSCADOR Y FICHA COMPLETA
+# 5. BUSCADOR Y FICHA CON RECORDATORIOS PROGRAMADOS POR FECHA/HORA
 # ---------------------------------------------------------
 if menu == "🏠 Buscador & Ficha Alumno":
-    st.subheader("🔍 Buscador de Alumnos")
+    st.subheader("🔍 Buscador de Alumnos con Alertas Programadas")
     busqueda = st.text_input("Ingresa Nombre, Apellido o Número de Matrícula:", placeholder="Ej: Alejandro, Shasha, 10741...")
     
     if busqueda:
@@ -305,26 +320,44 @@ if menu == "🏠 Buscador & Ficha Alumno":
                     b_col2.markdown(f'<a href="{link_wa}" target="_blank" class="btn-action btn-wa">💬 WhatsApp Directo</a>', unsafe_allow_html=True)
                     
                     st.markdown("---")
-                    st.write("#### 📌 Crear Recordatorio para Telegram")
-                    texto_rec = st.text_input("Escribe una tarea o aviso pendiente:", key=f"rec_{mat}")
-                    if st.button("🔔 Programar Alerta Telegram", key=f"btn_rec_{mat}"):
-                        nuevo_rec = {"id": mat, "alumno": nombre_comp, "tarea": texto_rec, "fecha": str(datetime.now().strftime("%Y-%m-%d %H:%M"))}
+                    st.write("#### 📌 Programar Aviso Personalizado por Fecha y Hora")
+                    
+                    texto_rec = st.text_input("Tarea o aviso pendiente:", placeholder="Ej: Llamar a la madre de Juan", key=f"rec_{mat}")
+                    
+                    col_f, col_h = st.columns(2)
+                    fecha_aviso = col_f.date_input("📅 Fecha del aviso:", min_value=date.today(), key=f"f_{mat}")
+                    hora_aviso = col_h.time_input("⏰ Hora del aviso:", value=time(17, 0), key=f"h_{mat}")
+                    
+                    if st.button("🔔 Confirmar Alerta Programada", key=f"btn_rec_{mat}"):
+                        f_str = fecha_aviso.strftime("%d/%m/%Y")
+                        h_str = hora_aviso.strftime("%H:%M")
+                        
+                        mensaje_telegram = f"📌 *RECORDATORIO PROGRAMADO:*\n{texto_rec} del alumno/a *{nombre_comp}* a las {h_str} el {f_str}"
+                        
+                        nuevo_rec = {
+                            "id": mat,
+                            "alumno": nombre_comp,
+                            "tarea": texto_rec,
+                            "fecha_aviso": f_str,
+                            "hora_aviso": h_str,
+                            "creado": str(datetime.now().strftime("%d/%m/%Y %H:%M"))
+                        }
+                        
                         recordatorios.append(nuevo_rec)
                         with open(REC_FILE, "w") as f:
                             json.dump(recordatorios, f)
                         
-                        enviar_notificacion_telegram(f"📌 *NUEVO RECORDATORIO CREADO*\n\n*Alumno:* {nombre_comp}\n*Tarea:* {texto_rec}\n\nEste aviso te recordará la tarea pendiente.")
-                        st.success("Recordatorio guardado y enviado a tu Telegram ✅")
+                        enviar_notificacion_telegram(mensaje_telegram)
+                        st.success(f"Alerta programada y enviada a Telegram: '{texto_rec} a las {h_str} el {f_str}' ✅")
         else:
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 6. LISTA COMPLETA Y DESCARGAS CON FORMATO EXCEL PERFECTO
+# 6. LISTA COMPLETA Y DESCARGA EN EXCEL
 # ---------------------------------------------------------
 elif menu == "📋 Lista Completa & Descargas":
     st.subheader(f"📋 Registro Oficial de Alumnos ({len(df_alumnos)} Alumnos)")
     
-    # Exportación optimizada de Alumnos (UTF-8 con BOM y separador ;)
     buffer_alumnos = io.BytesIO()
     df_alumnos.to_csv(buffer_alumnos, index=False, sep=';', encoding='utf-8-sig')
     buffer_alumnos.seek(0)
@@ -332,7 +365,7 @@ elif menu == "📋 Lista Completa & Descargas":
     col_d1, col_d2 = st.columns(2)
     with col_d1:
         st.download_button(
-            label="📥 Descargar Alumnos (Excel / CSV Perfecto)",
+            label="📥 Descargar Lista Completa (Excel / CSV Perfecto)",
             data=buffer_alumnos,
             file_name=f"Alumnos_Anthonys_School_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv"
@@ -347,13 +380,12 @@ elif menu == "📋 Lista Completa & Descargas":
     if prof_descarga in horarios:
         df_hor_descarga = pd.DataFrame(horarios[prof_descarga])
         
-        # Exportación optimizada de Horarios (Evita tildes/símbolos raros como MiÃ©rcoles o 4ºeso)
         buffer_horario = io.BytesIO()
         df_hor_descarga.to_csv(buffer_horario, index=False, sep=';', encoding='utf-8-sig')
         buffer_horario.seek(0)
         
         st.download_button(
-            label=f"🖨️ Descargar Horario de {prof_descarga} (Listo para Imprimir en Excel)",
+            label=f"🖨️ Descargar Horario de {prof_descarga} (Listo para Imprimir)",
             data=buffer_horario,
             file_name=f"Horario_{prof_descarga}_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv"
@@ -384,7 +416,7 @@ elif menu == "👥 Grupos de Clases":
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
 # ---------------------------------------------------------
-# 9. EDITOR COMPLETO (AÑADIR, EDITAR Y DAR DE BAJA)
+# 9. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
 # ---------------------------------------------------------
 elif menu == "🛠️ Editor (Bajas y Modificaciones)":
     st.subheader("🛠️ Panel de Modificación y Dar de Baja")
@@ -465,21 +497,24 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                 st.rerun()
 
 # ---------------------------------------------------------
-# 10. RECORDATORIOS Y CIRCULARES
+# 10. RECORDATORIOS PROGRAMADOS Y CIRCULARES
 # ---------------------------------------------------------
 elif menu == "📌 Recordatorios Activos":
-    st.subheader("📌 Tareas Pendientes y Alertas de Telegram")
+    st.subheader("📌 Agenda de Alertas Programadas")
     if len(recordatorios) == 0:
-        st.info("No hay recordatorios pendientes en este momento.")
+        st.info("No hay recordatorios programados en este momento.")
     else:
         for idx, rec in enumerate(recordatorios):
             col_rec1, col_rec2 = st.columns([4, 1])
-            col_rec1.warning(f"👤 **{rec['alumno']}** — {rec['tarea']} *(Creado: {rec['fecha']})*")
-            if col_rec2.button("✅ Eliminar / Resuelto", key=f"del_rec_{idx}"):
+            f_txt = rec.get('fecha_aviso', 'Pendiente')
+            h_txt = rec.get('hora_aviso', '')
+            col_rec1.warning(f"📌 **{rec['tarea']}** — 👤 *{rec['alumno']}* \n📅 **Programado para:** {h_txt} el {f_txt}")
+            
+            if col_rec2.button("✅ Marcar como Resuelto", key=f"del_rec_{idx}"):
                 recordatorios.pop(idx)
                 with open(REC_FILE, "w") as f:
                     json.dump(recordatorios, f)
-                enviar_notificacion_telegram(f"✅ *RECORDATORIO RESUELTO*\n\nLa tarea del alumno *{rec['alumno']}* se ha marcado como completada.")
+                enviar_notificacion_telegram(f"✅ *RECORDATORIO RESUELTO*\n\nSe ha completado el aviso programado del alumno *{rec['alumno']}*.")
                 st.rerun()
 
 elif menu == "📢 Enviar Circular General":
