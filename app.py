@@ -56,6 +56,7 @@ st.markdown("""
 DATA_FILE = "alumnos_data.csv"
 REC_FILE = "recordatorios.json"
 HORARIOS_FILE = "horarios_data.json"
+PAGOS_FILE = "pagos_data.json"
 
 def obtener_alumnos_con_nuevos():
     return [
@@ -201,6 +202,15 @@ if not os.path.exists(REC_FILE):
 with open(REC_FILE, "r") as f:
     recordatorios = json.load(f)
 
+# Inicializar Archivo de Pagos (Verde por defecto)
+if not os.path.exists(PAGOS_FILE):
+    pagos_init = {mat: True for mat in df_alumnos['Matrícula'].tolist()}
+    with open(PAGOS_FILE, "w") as f:
+        json.dump(pagos_init, f)
+
+with open(PAGOS_FILE, "r") as f:
+    estado_pagos = json.load(f)
+
 # ---------------------------------------------------------
 # 3. BASE DE DATOS EDITABLE DE HORARIOS
 # ---------------------------------------------------------
@@ -271,7 +281,7 @@ with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado - Programación de Avisos Fecha/Hora y Telegram</div>
+        <div class='hero-subtitle'>Portal Integrado - Control de Asistencia, Pagos y Alertas</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -284,14 +294,14 @@ with st.sidebar:
     st.markdown("### 📌 Navegación")
     menu = st.radio(
         "",
-        ["🏠 Buscador & Ficha Alumno", "📋 Lista Completa & Descargas", "🗓️ Horario de Profesores", "👥 Grupos de Clases", "🛠️ Editor (Bajas y Modificaciones)", "📌 Recordatorios Activos", "📢 Enviar Circular General"]
+        ["🏠 Buscador & Ficha Alumno", "✅ Asistencia y Pagos", "📋 Lista Completa & Descargas", "🗓️ Horario de Profesores", "👥 Grupos de Clases", "🛠️ Editor (Bajas y Modificaciones)", "📌 Recordatorios Activos", "📢 Enviar Circular General"]
     )
 
 # ---------------------------------------------------------
-# 5. BUSCADOR Y FICHA CON RECORDATORIOS PROGRAMADOS POR FECHA/HORA
+# 5. BUSCADOR Y FICHA CON RECORDATORIOS
 # ---------------------------------------------------------
 if menu == "🏠 Buscador & Ficha Alumno":
-    st.subheader("🔍 Buscador de Alumnos con Alertas Programadas")
+    st.subheader("🔍 Buscador de Alumnos")
     busqueda = st.text_input("Ingresa Nombre, Apellido o Número de Matrícula:", placeholder="Ej: Alejandro, Shasha, 10741...")
     
     if busqueda:
@@ -323,7 +333,6 @@ if menu == "🏠 Buscador & Ficha Alumno":
                     st.write("#### 📌 Programar Aviso Personalizado por Fecha y Hora")
                     
                     texto_rec = st.text_input("Tarea o aviso pendiente:", placeholder="Ej: Llamar a la madre de Juan", key=f"rec_{mat}")
-                    
                     col_f, col_h = st.columns(2)
                     fecha_aviso = col_f.date_input("📅 Fecha del aviso:", min_value=date.today(), key=f"f_{mat}")
                     hora_aviso = col_h.time_input("⏰ Hora del aviso:", value=time(17, 0), key=f"h_{mat}")
@@ -331,7 +340,6 @@ if menu == "🏠 Buscador & Ficha Alumno":
                     if st.button("🔔 Confirmar Alerta Programada", key=f"btn_rec_{mat}"):
                         f_str = fecha_aviso.strftime("%d/%m/%Y")
                         h_str = hora_aviso.strftime("%H:%M")
-                        
                         mensaje_telegram = f"📌 *RECORDATORIO PROGRAMADO:*\n{texto_rec} del alumno/a *{nombre_comp}* a las {h_str} el {f_str}"
                         
                         nuevo_rec = {
@@ -342,18 +350,97 @@ if menu == "🏠 Buscador & Ficha Alumno":
                             "hora_aviso": h_str,
                             "creado": str(datetime.now().strftime("%d/%m/%Y %H:%M"))
                         }
-                        
                         recordatorios.append(nuevo_rec)
                         with open(REC_FILE, "w") as f:
                             json.dump(recordatorios, f)
                         
                         enviar_notificacion_telegram(mensaje_telegram)
-                        st.success(f"Alerta programada y enviada a Telegram: '{texto_rec} a las {h_str} el {f_str}' ✅")
+                        st.success(f"Alerta programada y enviada a Telegram ✅")
         else:
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 6. LISTA COMPLETA Y DESCARGA EN EXCEL
+# 6. PESTAÑA NUEVA: CONTROL DE ASISTENCIA Y PAGOS
+# ---------------------------------------------------------
+elif menu == "✅ Asistencia y Pagos":
+    st.subheader("✅ Control Diario de Asistencia y Gestión de Pagos")
+    sub_tab1, sub_tab2 = st.tabs(["🔴 Registro de Faltas de Asistencia", "💳 Confirmación de Pagos (Verde por Defecto)"])
+    
+    with sub_tab1:
+        st.write("#### Registrar Falta de Asistencia")
+        col_as1, col_as2 = st.columns(2)
+        fecha_falta = col_as1.date_input("Fecha de la falta:", value=date.today())
+        alumno_falta_sel = col_as2.selectbox("Selecciona el alumno que ha faltado:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
+        
+        marca_falta = st.checkbox("❌ Marcar Falta de Asistencia")
+        
+        if st.button("💾 Guardar Falta y Crear Recordatorio Automatico"):
+            if marca_falta and alumno_falta_sel:
+                mat_f = alumno_falta_sel.split(" - ")[0]
+                idx_f = df_alumnos[df_alumnos['Matrícula'] == mat_f].index[0]
+                nom_f = f"{df_alumnos.at[idx_f, 'Nombre']} {df_alumnos.at[idx_f, 'Primer Apellido']}"
+                f_str = fecha_falta.strftime("%d/%m/%Y")
+                hora_actual = datetime.now().strftime("%H:%M")
+                
+                texto_tarea = f"Llamar a la familia por falta de asistencia el {f_str}"
+                
+                nuevo_rec = {
+                    "id": mat_f,
+                    "alumno": nom_f,
+                    "tarea": texto_tarea,
+                    "fecha_aviso": f_str,
+                    "hora_aviso": hora_actual,
+                    "creado": str(datetime.now().strftime("%d/%m/%Y %H:%M"))
+                }
+                recordatorios.append(nuevo_rec)
+                with open(REC_FILE, "w") as f:
+                    json.dump(recordatorios, f)
+                
+                msg_tele = f"📌 *RECORDATORIO AUTOMÁTICO (FALTA DE ASISTENCIA):*\nLlamar a la familia de *{nom_f}* por falta de asistencia el {f_str}."
+                enviar_notificacion_telegram(msg_tele)
+                st.success(f"Falta registrada y recordatorio generado para {nom_f} ✅")
+
+    with sub_tab2:
+        st.write("#### Estado Mensual de Pagos")
+        st.info("Todos los alumnos están marcados en **Verde (Pagado)** por defecto. Desmarca la casilla solo si el pago no ha entrado.")
+        
+        alumno_pago_sel = st.selectbox("Buscar Alumno para revisar pago:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
+        
+        if alumno_pago_sel:
+            mat_p = alumno_pago_sel.split(" - ")[0]
+            idx_p = df_alumnos[df_alumnos['Matrícula'] == mat_p].index[0]
+            nom_p = f"{df_alumnos.at[idx_p, 'Nombre']} {df_alumnos.at[idx_p, 'Primer Apellido']}"
+            
+            pago_ok = estado_pagos.get(mat_p, True)
+            
+            pago_check = st.checkbox("🟢 Pago Recibido / Confirmado", value=pago_ok)
+            
+            if pago_check != pago_ok:
+                estado_pagos[mat_p] = pago_check
+                with open(PAGOS_FILE, "w") as f:
+                    json.dump(estado_pagos, f)
+                
+                if not pago_check:
+                    texto_pago = f"Reclamar cuota mensual pendiente"
+                    nuevo_rec = {
+                        "id": mat_p,
+                        "alumno": nom_p,
+                        "tarea": texto_pago,
+                        "fecha_aviso": datetime.now().strftime("%d/%m/%Y"),
+                        "hora_aviso": datetime.now().strftime("%H:%M"),
+                        "creado": str(datetime.now().strftime("%d/%m/%Y %H:%M"))
+                    }
+                    recordatorios.append(nuevo_rec)
+                    with open(REC_FILE, "w") as f:
+                        json.dump(recordatorios, f)
+                    
+                    enviar_notificacion_telegram(f"🔴 *ALERTA DE PAGO PENDIENTE:*\nEl alumno/a *{nom_p}* ha sido marcado con pago pendiente.")
+                    st.error(f"El estado de {nom_p} ha cambiado a PENDIENTE DE PAGO. Se ha generado la alerta en Telegram.")
+                else:
+                    st.success(f"El estado de {nom_p} ha vuelto a PAGADO 🟢")
+
+# ---------------------------------------------------------
+# 7. LISTA COMPLETA Y DESCARGA EN EXCEL
 # ---------------------------------------------------------
 elif menu == "📋 Lista Completa & Descargas":
     st.subheader(f"📋 Registro Oficial de Alumnos ({len(df_alumnos)} Alumnos)")
@@ -393,7 +480,7 @@ elif menu == "📋 Lista Completa & Descargas":
         st.dataframe(df_hor_descarga, use_container_width=True)
 
 # ---------------------------------------------------------
-# 7. HORARIOS DE PROFESORES
+# 8. HORARIOS DE PROFESORES
 # ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
@@ -404,7 +491,7 @@ elif menu == "🗓️ Horario de Profesores":
         st.dataframe(df_horario, use_container_width=True, height=450)
 
 # ---------------------------------------------------------
-# 8. GRUPOS Y AULAS
+# 9. GRUPOS Y AULAS
 # ---------------------------------------------------------
 elif menu == "👥 Grupos de Clases":
     st.subheader("🏫 Configuración de Grupos y Aulas")
@@ -416,7 +503,7 @@ elif menu == "👥 Grupos de Clases":
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
 # ---------------------------------------------------------
-# 9. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
+# 10. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
 # ---------------------------------------------------------
 elif menu == "🛠️ Editor (Bajas y Modificaciones)":
     st.subheader("🛠️ Panel de Modificación y Dar de Baja")
@@ -438,6 +525,11 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                     nueva_fila = {"Matrícula": n_mat, "Nombre": n_nom.upper(), "Primer Apellido": n_ap1.upper(), "Segundo Apellido": n_ap2.upper(), "Teléfono": n_tel, "Fecha Alta": datetime.now().strftime("%d/%m/%Y")}
                     df_alumnos = pd.concat([df_alumnos, pd.DataFrame([nueva_fila])], ignore_index=True)
                     df_alumnos.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
+                    
+                    estado_pagos[n_mat] = True
+                    with open(PAGOS_FILE, "w") as f:
+                        json.dump(estado_pagos, f)
+                        
                     st.success(f"Alumno {n_nom} registrado correctamente ✅")
                     st.rerun()
 
@@ -497,7 +589,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                 st.rerun()
 
 # ---------------------------------------------------------
-# 10. RECORDATORIOS PROGRAMADOS Y CIRCULARES
+# 11. RECORDATORIOS PROGRAMADOS Y CIRCULARES
 # ---------------------------------------------------------
 elif menu == "📌 Recordatorios Activos":
     st.subheader("📌 Agenda de Alertas Programadas")
