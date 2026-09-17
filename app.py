@@ -16,9 +16,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Carga de credenciales con fallback seguro
-TELEGRAM_TOKEN = st.secrets.get("TELEGRAM_TOKEN", "8811202788:AAF3mWm2tCVUkZe9mg5XhLuxuogEMK3pNlU")
-TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "8954494227")
+# Carga segura para que no falle en local ni en la nube
+TELEGRAM_TOKEN = "8811202788:AAF3mWm2tCVUkZe9mg5XhLuxuogEMK3pNlU"
+TELEGRAM_CHAT_ID = "8954494227"
+
+try:
+    if "TELEGRAM_TOKEN" in st.secrets:
+        TELEGRAM_TOKEN = st.secrets["TELEGRAM_TOKEN"]
+    if "TELEGRAM_CHAT_ID" in st.secrets:
+        TELEGRAM_CHAT_ID = st.secrets["TELEGRAM_CHAT_ID"]
+except Exception:
+    pass
 
 def enviar_notificacion_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -383,7 +391,7 @@ if menu == "🏠 Buscador & Ficha Alumno":
                         if enviar_notificacion_telegram(mensaje_telegram):
                             st.success("Alerta programada y enviada a Telegram ✅")
                         else:
-                            st.error("Error al conectar con Telegram. Revisa las credenciales.")
+                            st.error("Error al conectar con Telegram. Revisa la conexión.")
         else:
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
