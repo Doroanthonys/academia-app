@@ -27,6 +27,15 @@ def enviar_notificacion_telegram(mensaje):
     except Exception:
         pass
 
+def enviar_foto_telegram(foto_bytes, caption):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+    files = {"photo": ("anuncio.jpg", foto_bytes, "image/jpeg")}
+    data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption, "parse_mode": "Markdown"}
+    try:
+        requests.post(url, files=files, data=data, timeout=10)
+    except Exception:
+        pass
+
 # Estilos CSS Modernos
 st.markdown("""
     <style>
@@ -285,7 +294,7 @@ with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
 st.markdown("""
     <div class='hero-box'>
         <div class='hero-title'>🇬🇧 Anthony's English School</div>
-        <div class='hero-subtitle'>Portal Integrado - Publicador de Redes Sociales y Gestión Académica</div>
+        <div class='hero-subtitle'>Portal Integrado - Diseñador de Anuncios y Gestión General</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -300,7 +309,7 @@ with st.sidebar:
         "",
         [
             "🏠 Buscador & Ficha Alumno",
-            "📢 Publicar en Redes Sociales",
+            "📢 Diseñar Anuncio (Enviar a Telegram)",
             "✅ Asistencia y Pagos",
             "📋 Lista Completa & Descargas",
             "🗓️ Horario de Profesores",
@@ -374,72 +383,69 @@ if menu == "🏠 Buscador & Ficha Alumno":
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
 # ---------------------------------------------------------
-# 6. PESTAÑA NUEVA: PUBLICADOR EN REDES SOCIALES
+# 6. DISEÑADOR DE ANUNCIOS Y ENVÍO A TELEGRAM
 # ---------------------------------------------------------
-elif menu == "📢 Publicar en Redes Sociales":
-    st.subheader("📢 Publicador de Anuncios y Ofertas (Facebook e Instagram)")
-    st.info("Escribe tu anuncio, adjunta una imagen promocional y publícalo en un solo clic.")
+elif menu == "📢 Diseñar Anuncio (Enviar a Telegram)":
+    st.subheader("📢 Diseñador de Anuncios y Ofertas")
+    st.info("Crea el post de tu preferencia, adjunta la foto real de las instalaciones y recíbelo maquetado en tu Telegram listo para copiar a Instagram/Facebook.")
 
     col_crear, col_prev = st.columns([3, 2])
 
     with col_crear:
-        st.write("#### ✏️ Redactar Publicación")
+        st.write("#### ✏️ Elegir Plantilla o Redactar")
         
         plantilla_sel = st.selectbox(
-            "Cargar plantilla rápida (Opcional):",
+            "Cargar plantilla basada en tus aulas e instalaciones:",
             [
                 "Personalizada (Escribir desde cero)",
-                "🔥 Últimos Huecos Disponibles",
-                "🎉 Oferta Especial de Matrícula",
-                "🇬🇧 Nuevo Curso Intensivo de Inglés"
+                "🔥 Plantilla 1: Últimos Huecos (Foto Oficina)",
+                "🎓 Plantilla 2: Aulas Equipadas / Exámenes",
+                "🇺🇸 Plantilla 3: Enfoque Práctico (Aula Route 66)",
+                "🧸 Plantilla 4: Refuerzo Primaria y ESO"
             ]
         )
         
         texto_defecto = ""
-        if plantilla_sel == "🔥 Últimos Huecos Disponibles":
-            texto_defecto = "🔥 ¡ÚLTIMOS HUECOS DISPONIBLES EN ANTHONY'S ENGLISH SCHOOL! 🔥\n\nAbriremos nuevas plazas para preparación de exámenes y refuerzo escolar.\n\n📍 Horarios adaptados por niveles.\n📲 ¡Escríbenos un WhatsApp al 609671976 y reserva la plaza de tu hijo/a antes de que se agoten!"
-        elif plantilla_sel == "🎉 Oferta Especial de Matrícula":
-            texto_defecto = "🎉 ¡OFERTA ESPECIAL DE MATRÍCULA! 🎉\n\nInscríbete esta semana en Anthony's English School y obtén un descuento especial en tu inscripción.\n\n🇬🇧 Grupos reducidos y atención personalizada.\n👉 ¡Pide información sin compromiso!"
-        elif plantilla_sel == "🇬🇧 Nuevo Curso Intensivo de Inglés":
-            texto_defecto = "🇬🇧 ¡MEJORA TU NIVEL DE INGLÉS RÁPIDAMENTE! 🇬🇧\n\nIniciamos nuevos grupos intensivos. Ideal para superar tus exámenes oficiales o ganar fluidez en conversación.\n\n📩 Mándanos un mensaje privado o contáctanos por WhatsApp."
+        if plantilla_sel == "🔥 Plantilla 1: Últimos Huecos (Foto Oficina)":
+            texto_defecto = "🔥 ¡ÚLTIMOS HUECOS DISPONIBLES EN ANTHONY'S ENGLISH SCHOOL! 🔥\n\n¿Buscas un centro de inglés moderno, cercano y donde realmente se aprenda?\n\nVen a conocer nuestras instalaciones y encuentra el grupo perfecto para ti o para tus hijos.\n\n📍 Grupos reducidos y atención personalizada.\n📲 ¡Escríbenos un WhatsApp al 609671976 y reserva tu prueba de nivel gratuita!"
+        elif plantilla_sel == "🎓 Plantilla 2: Aulas Equipadas / Exámenes":
+            texto_defecto = "🎓 PREPARA TU TÍTULO OFICIAL DE CAMBRIDGE (B1, B2, C1)\n\nEn Anthony's English School preparamos a nuestros alumnos en aulas adaptadas, cómodas y con la última tecnología.\n\n📚 Exámenes PET, FCE y Advanced\n🏫 Simulacros reales y material actualizado\n🗣️ Clases con profesores expertos\n\n📩 ¡Consúltanos horarios y reserva tu plaza!"
+        elif plantilla_sel == "🇺🇸 Plantilla 3: Enfoque Práctico (Aula Route 66)":
+            texto_defecto = "🇺🇸 ¡SUMÉRGETE EN EL INGLÉS SIN SALIR DE OURENSE!\n\nNo solo enseñamos gramática; creamos un entorno interactivo y estimulante para que hablar inglés sea natural.\n\n💡 Clases dinámicas con tecnología en el aula\n🗣️ Enfoque 100% práctico y conversacional\n🎯 Grupos específicos por niveles\n\n📲 ¡Pídenos información sin compromiso!"
+        elif plantilla_sel == "🧸 Plantilla 4: Refuerzo Primaria y ESO":
+            texto_defecto = "🧸 EL MEJOR REFUERZO ESCOLAR PARA LOS MÁS PEQUEÑOS\n\nAyudamos a tus hijos a ganar confianza con el inglés desde el primer día, en un ambiente divertido y acogedor.\n\n🏫 Apoyo para Primaria, ESO y Bachillerato\n👥 Grupos reducidos para una atención real\n📈 Seguimiento continuo e información a las familias\n\n📲 Contacta por WhatsApp al 609671976."
 
-        texto_publicacion = st.text_area("Texto de la publicación:", value=texto_defecto, height=180)
-        imagen_subida = st.file_uploader("Adjuntar imagen publicitaria (Opcional):", type=["jpg", "png", "jpeg"])
+        texto_publicacion = st.text_area("Texto maquetado para el anuncio:", value=texto_defecto, height=200)
+        imagen_subida = st.file_uploader("Adjuntar foto de la academia (Opcional):", type=["jpg", "png", "jpeg"])
 
-        st.write("#### 🌐 Seleccionar Redes de Destino")
-        col_fb, col_ig = st.columns(2)
-        pub_facebook = col_fb.checkbox("Facebook Page", value=True)
-        pub_instagram = col_ig.checkbox("Instagram Business", value=True)
-
-        if st.button("🚀 PUBLICAR AHORA EN REDES SOCIALES", type="primary"):
+        if st.button("📲 ENVIAR PUBLICACIÓN A MI TELEGRAM", type="primary"):
             if not texto_publicacion.strip():
                 st.error("Por favor, escribe un texto antes de enviar la publicación.")
             else:
-                redes_activas = []
-                if pub_facebook: redes_activas.append("Facebook")
-                if pub_instagram: redes_activas.append("Instagram")
-
-                if len(redes_activas) == 0:
-                    st.warning("Selecciona al menos una red social para publicar.")
+                if imagen_subida is not None:
+                    foto_bytes = imagen_subida.getvalue()
+                    enviar_foto_telegram(foto_bytes, texto_publicacion)
                 else:
-                    st.success(f"¡Anuncio enviado correctamente a **{', '.join(redes_activas)}**! 🎉")
-                    st.balloons()
+                    enviar_notificacion_telegram(texto_publicacion)
+                
+                st.success("¡Anuncio enviado con éxito a tu Telegram! 📱 Abrre Telegram, copia el texto y la foto y publícalo en tu Instagram o Facebook.")
+                st.balloons()
 
     with col_prev:
-        st.write("#### 📱 Vista Previa en Móvil")
+        st.write("#### 📱 Vista Previa del Anuncio")
         
         st.markdown("<div class='preview-card'>", unsafe_allow_html=True)
-        st.markdown("<b>🇬🇧 Anthony's English School</b> <small style='color:gray;'>• Publicidad</small>", unsafe_allow_html=True)
+        st.markdown("<b>🇬🇧 Anthony's English School</b> <small style='color:gray;'>• Vista Previa</small>", unsafe_allow_html=True)
         
         if imagen_subida is not None:
             st.image(imagen_subida, use_column_width=True)
         else:
-            st.info("🖼️ Ninguna imagen adjuntada. Se publicará solo texto.")
+            st.info("🖼️ Ninguna foto adjuntada. Se enviará solo el mensaje de texto.")
             
         if texto_publicacion:
             st.markdown(f"<p style='font-size:0.95rem; margin-top:10px;'>{texto_publicacion.replace(chr(10), '<br>')}</p>", unsafe_allow_html=True)
         else:
-            st.caption("Escribe el texto a la izquierda para ver cómo lucirá tu anuncio...")
+            st.caption("Escribe el texto a la izquierda para simular el anuncio...")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
