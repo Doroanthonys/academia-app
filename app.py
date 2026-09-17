@@ -16,25 +16,28 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-TELEGRAM_TOKEN = "8811202788:AAF3mWm2tCVUkZe9mg5XhLuxuogEMK3pNlU"
-TELEGRAM_CHAT_ID = "8954494227"
+# Carga de credenciales con fallback seguro
+TELEGRAM_TOKEN = st.secrets.get("TELEGRAM_TOKEN", "8811202788:AAF3mWm2tCVUkZe9mg5XhLuxuogEMK3pNlU")
+TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "8954494227")
 
 def enviar_notificacion_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje, "parse_mode": "Markdown"}
     try:
-        requests.post(url, json=payload, timeout=5)
+        res = requests.post(url, json=payload, timeout=5)
+        return res.status_code == 200
     except Exception:
-        pass
+        return False
 
 def enviar_foto_telegram(foto_bytes, caption):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
     files = {"photo": ("anuncio.jpg", foto_bytes, "image/jpeg")}
     data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption, "parse_mode": "Markdown"}
     try:
-        requests.post(url, files=files, data=data, timeout=10)
+        res = requests.post(url, files=files, data=data, timeout=10)
+        return res.status_code == 200
     except Exception:
-        pass
+        return False
 
 # Estilos CSS Modernos
 st.markdown("""
@@ -377,8 +380,10 @@ if menu == "🏠 Buscador & Ficha Alumno":
                         with open(REC_FILE, "w") as f:
                             json.dump(recordatorios, f)
                         
-                        enviar_notificacion_telegram(mensaje_telegram)
-                        st.success("Alerta programada y enviada a Telegram ✅")
+                        if enviar_notificacion_telegram(mensaje_telegram):
+                            st.success("Alerta programada y enviada a Telegram ✅")
+                        else:
+                            st.error("Error al conectar con Telegram. Revisa las credenciales.")
         else:
             st.warning("No se ha encontrado ningún alumno con ese término de búsqueda.")
 
@@ -422,14 +427,18 @@ elif menu == "📢 Diseñar Anuncio (Enviar a Telegram)":
             if not texto_publicacion.strip():
                 st.error("Por favor, escribe un texto antes de enviar la publicación.")
             else:
+                exito = False
                 if imagen_subida is not None:
                     foto_bytes = imagen_subida.getvalue()
-                    enviar_foto_telegram(foto_bytes, texto_publicacion)
+                    exito = enviar_foto_telegram(foto_bytes, texto_publicacion)
                 else:
-                    enviar_notificacion_telegram(texto_publicacion)
+                    exito = enviar_notificacion_telegram(texto_publicacion)
                 
-                st.success("¡Anuncio enviado con éxito a tu Telegram! 📱 Abrre Telegram, copia el texto y la foto y publícalo en tu Instagram o Facebook.")
-                st.balloons()
+                if exito:
+                    st.success("¡Anuncio enviado con éxito a tu Telegram! 📱 Abre Telegram, copia el texto y la foto y publícalo en tu Instagram o Facebook.")
+                    st.balloons()
+                else:
+                    st.error("Hubo un problema al enviar el mensaje a Telegram. Verifica la conexión.")
 
     with col_prev:
         st.write("#### 📱 Vista Previa del Anuncio")
