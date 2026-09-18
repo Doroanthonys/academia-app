@@ -455,7 +455,7 @@ elif menu == "📢 Diseñar Anuncio (Enviar a Telegram)":
         st.markdown("<b>🇬🇧 Anthony's English School</b> <small style='color:gray;'>• Vista Previa</small>", unsafe_allow_html=True)
         
         if imagen_subida is not None:
-            st.image(imagen_subida, use_column_width=True)
+            st.image(imagen_subida, use_container_width=True)
         else:
             st.info("🖼️ Ninguna foto adjuntada. Se enviará solo el mensaje de texto.")
             
