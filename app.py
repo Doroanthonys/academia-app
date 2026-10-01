@@ -72,6 +72,11 @@ st.markdown("""
         border-radius: 12px; padding: 16px; margin-top: 10px;
         box-shadow: 0px 4px 6px rgba(0,0,0,0.05);
     }
+    .kpi-card {
+        background-color: #FFFFFF; border-radius: 12px; padding: 16px;
+        border: 1px solid #E2E8F0; text-align: center;
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.04);
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -82,6 +87,7 @@ DATA_FILE = "alumnos_data.csv"
 REC_FILE = "recordatorios.json"
 HORARIOS_FILE = "horarios_data.json"
 PAGOS_FILE = "pagos_data.json"
+CAJA_FILE = "caja_data.json"
 
 def obtener_alumnos_con_nuevos():
     return [
@@ -188,7 +194,7 @@ def obtener_alumnos_con_nuevos():
         {"Matrícula": "21166", "Nombre": "HUGO", "Primer Apellido": "VAZQUEZ", "Segundo Apellido": "VILA", "Teléfono": "626150544", "Fecha Alta": "01/10/2025"},
         {"Matrícula": "21173", "Nombre": "PALOMA", "Primer Apellido": "UGARTE", "Segundo Apellido": "GARCIA", "Teléfono": "673525726", "Fecha Alta": "04/06/2026"},
 
-        # --- 18 NUEVOS ALUMNOS ---
+        # --- 18 PRIMEROS NUEVOS ---
         {"Matrícula": "1008", "Nombre": "RUBEN", "Primer Apellido": "CASADO", "Segundo Apellido": "FERNANDEZ", "Teléfono": "626546199", "Fecha Alta": "22/09/2024"},
         {"Matrícula": "1043", "Nombre": "ALEJANDRA", "Primer Apellido": "CANAL", "Segundo Apellido": "DOMINGUEZ", "Teléfono": "606353218", "Fecha Alta": "24/09/2024"},
         {"Matrícula": "1055", "Nombre": "MAURO", "Primer Apellido": "DIAZ", "Segundo Apellido": "FERNANDEZ", "Teléfono": "666563610", "Fecha Alta": "24/09/2024"},
@@ -206,7 +212,26 @@ def obtener_alumnos_con_nuevos():
         {"Matrícula": "10642", "Nombre": "IÑAKI", "Primer Apellido": "MERELLES", "Segundo Apellido": "IGLESIAS", "Teléfono": "697326165", "Fecha Alta": "30/09/2021"},
         {"Matrícula": "10658", "Nombre": "ALBERTO", "Primer Apellido": "NOVOA", "Segundo Apellido": "ALVAREZ", "Teléfono": "647251628", "Fecha Alta": "30/09/2021"},
         {"Matrícula": "21050", "Nombre": "BEGOÑA", "Primer Apellido": "TEJERO", "Segundo Apellido": "MIGUEZ", "Teléfono": "678892964", "Fecha Alta": "30/09/2021"},
-        {"Matrícula": "21139", "Nombre": "IRIA", "Primer Apellido": "CIBREIRO", "Segundo Apellido": "TRIGO", "Teléfono": "636006448", "Fecha Alta": "23/09/2024"}
+        {"Matrícula": "21139", "Nombre": "IRIA", "Primer Apellido": "CIBREIRO", "Segundo Apellido": "TRIGO", "Teléfono": "636006448", "Fecha Alta": "23/09/2024"},
+
+        # --- 17 NUEVOS ALUMNOS (LOTE FOTO) ---
+        {"Matrícula": "1016", "Nombre": "XINHUI", "Primer Apellido": "XIA", "Segundo Apellido": "", "Teléfono": "618643807", "Fecha Alta": "22/09/2024"},
+        {"Matrícula": "10751", "Nombre": "IAGO", "Primer Apellido": "MERELLES", "Segundo Apellido": "IGLESIAS", "Teléfono": "687683242", "Fecha Alta": "05/02/2024"},
+        {"Matrícula": "10756", "Nombre": "CESAR", "Primer Apellido": "MENOR", "Segundo Apellido": "FERNANDEZ", "Teléfono": "676050069", "Fecha Alta": "14/09/2024"},
+        {"Matrícula": "10759", "Nombre": "XURXO ANXO", "Primer Apellido": "ROJAS", "Segundo Apellido": "MANUEL", "Teléfono": "659102441", "Fecha Alta": "22/09/2024"},
+        {"Matrícula": "10765", "Nombre": "JIMENA MARIA", "Primer Apellido": "FERNANDEZ", "Segundo Apellido": "CONDE", "Teléfono": "637852079", "Fecha Alta": "22/09/2024"},
+        {"Matrícula": "10781", "Nombre": "BORJA", "Primer Apellido": "LORENZO", "Segundo Apellido": "GRANDE", "Teléfono": "637598042", "Fecha Alta": "14/01/2025"},
+        {"Matrícula": "10782", "Nombre": "LUCIA", "Primer Apellido": "CANEIRO", "Segundo Apellido": "BASALO", "Teléfono": "630917160", "Fecha Alta": "25/02/2025"},
+        {"Matrícula": "10788", "Nombre": "DIEGO", "Primer Apellido": "RIAL", "Segundo Apellido": "ROMAN", "Teléfono": "637353599", "Fecha Alta": "19/09/2025"},
+        {"Matrícula": "10789", "Nombre": "IRATI", "Primer Apellido": "MIRANDA", "Segundo Apellido": "GARCIA", "Teléfono": "627630170", "Fecha Alta": "19/09/2025"},
+        {"Matrícula": "10791", "Nombre": "DUNIA", "Primer Apellido": "LOPEZ", "Segundo Apellido": "SILVA", "Teléfono": "696624077", "Fecha Alta": "23/09/2025"},
+        {"Matrícula": "10792", "Nombre": "MAURO", "Primer Apellido": "MENDEZ", "Segundo Apellido": "LORENZO", "Teléfono": "605311903", "Fecha Alta": "24/09/2025"},
+        {"Matrícula": "10794", "Nombre": "ALEJANDRO", "Primer Apellido": "ADRIAN CARBALLEDA", "Segundo Apellido": "OGANDO", "Teléfono": "659690505", "Fecha Alta": "26/11/2025"},
+        {"Matrícula": "10795", "Nombre": "HUGO", "Primer Apellido": "OUTEIRIÑO", "Segundo Apellido": "MOURE", "Teléfono": "636898067", "Fecha Alta": "02/12/2025"},
+        {"Matrícula": "10802", "Nombre": "JAVIER", "Primer Apellido": "GARRIDO", "Segundo Apellido": "FERNANDEZ", "Teléfono": "647070082", "Fecha Alta": "30/04/2026"},
+        {"Matrícula": "10808", "Nombre": "SOFIA", "Primer Apellido": "GONALEZ", "Segundo Apellido": "VAZQUEZ", "Teléfono": "667567900", "Fecha Alta": "10/11/2024"},
+        {"Matrícula": "10809", "Nombre": "DIEGO", "Primer Apellido": "GONZALEZ", "Segundo Apellido": "VAZQUEZ", "Teléfono": "667567900", "Fecha Alta": "10/11/2024"},
+        {"Matrícula": "21122", "Nombre": "ALFONSO", "Primer Apellido": "ALVAREZ", "Segundo Apellido": "RODRIGUEZ", "Teléfono": "639165754", "Fecha Alta": "22/09/2024"}
     ]
 
 if not os.path.exists(DATA_FILE):
@@ -214,7 +239,7 @@ if not os.path.exists(DATA_FILE):
     df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 else:
     df_check = pd.read_csv(DATA_FILE, dtype=str)
-    if len(df_check) < 115:
+    if len(df_check) < 132:
         df_init = pd.DataFrame(obtener_alumnos_con_nuevos())
         df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 
@@ -234,6 +259,15 @@ if not os.path.exists(PAGOS_FILE):
 
 with open(PAGOS_FILE, "r") as f:
     estado_pagos = json.load(f)
+
+# ARCHIVO DE CONTROL DE CAJA
+if not os.path.exists(CAJA_FILE):
+    caja_init = {"fondo_inicial": 0.0, "movimientos": []}
+    with open(CAJA_FILE, "w") as f:
+        json.dump(caja_init, f)
+
+with open(CAJA_FILE, "r") as f:
+    caja_data = json.load(f)
 
 # ---------------------------------------------------------
 # 3. BASE DE DATOS EDITABLE DE HORARIOS
@@ -322,6 +356,7 @@ with st.sidebar:
             "🏠 Buscador & Ficha Alumno",
             "📢 Diseñar Anuncio (Enviar a Telegram)",
             "📄 Enviar Formulario LOPD (WhatsApp)",
+            "💵 Control de Caja Diario",
             "✅ Asistencia y Pagos",
             "📋 Lista Completa & Descargas",
             "🗓️ Horario de Profesores",
@@ -500,7 +535,6 @@ elif menu == "📄 Enviar Formulario LOPD (WhatsApp)":
     st.markdown("---")
     st.write("#### 📝 Enlace y Mensaje Oficial para WhatsApp")
 
-    # ENLACE FIJO DE GOOGLE DOCS
     link_formulario = st.text_input(
         "Enlace del formulario / documento LOPD:",
         value="https://docs.google.com/document/d/1uGiLkQrsrpciaywvqVa0wa5zlg0GD59CbtXpfkTlLF0/edit?usp=sharing"
@@ -536,7 +570,82 @@ Para cumplir con la normativa de Protección de Datos (RGPD) de AYC ORENSE, S.L.
             )
 
 # ---------------------------------------------------------
-# 8. CONTROL DE ASISTENCIA Y PAGOS
+# 8. CONTROL DE CAJA DIARIO (NUEVA FUNCIÓN)
+# ---------------------------------------------------------
+elif menu == "💵 Control de Caja Diario":
+    st.subheader("💵 Control Diario de Caja y Efectivo")
+    st.info("Registra el fondo inicial, cobros en efectivo e ingresos o retiros por compras/gastos indicando el motivo.")
+
+    hoy_str = datetime.now().strftime("%d/%m/%Y")
+    
+    # Filtrar movimientos de hoy
+    movs_hoy = [m for m in caja_data.get("movimientos", []) if m.get("fecha") == hoy_str]
+    
+    total_entradas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Entrada")
+    total_salidas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Salida")
+    fondo_ini = caja_data.get("fondo_inicial", 0.0)
+    saldo_actual = fondo_ini + total_entradas - total_salidas
+
+    # Indicadores visuales rápidos (KPIs)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.markdown(f"<div class='kpi-card'><b>🏦 Fondo Inicial:</b><br><h3 style='color:#2563EB;'>{fondo_ini:.2f} €</h3></div>", unsafe_allow_html=True)
+    c2.markdown(f"<div class='kpi-card'><b>🟢 Entradas Hoy:</b><br><h3 style='color:#16A34A;'>+{total_entradas:.2f} €</h3></div>", unsafe_allow_html=True)
+    c3.markdown(f"<div class='kpi-card'><b>🔴 Salidas / Gastos:</b><br><h3 style='color:#DC2626;'>-{total_salidas:.2f} €</h3></div>", unsafe_allow_html=True)
+    c4.markdown(f"<div class='kpi-card'><b>💰 Saldo Actual en Caja:</b><br><h3 style='color:#1E3A8A;'>{saldo_actual:.2f} €</h3></div>", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    col_cj1, col_cj2 = st.columns(2)
+
+    with col_cj1:
+        st.write("#### ➕ / ➖ Añadir Movimiento de Efectivo")
+        
+        tipo_mov = st.selectbox("Tipo de Movimiento:", ["🔴 Salida / Retiro de Dinero (Gasto)", "🟢 Entrada / Cobro en Efectivo"])
+        monto_mov = st.number_input("Importe (€):", min_value=0.01, value=10.00, step=1.0)
+        motivo_mov = st.text_input("Motivo / Concepto del movimiento:", placeholder="Ej: Compra folios, Tinta impresora, Cobro cuota Juan...")
+
+        if st.button("💾 Guardar Movimiento en Caja", type="primary"):
+            if not motivo_mov.strip():
+                st.error("Por favor, especifica el motivo o concepto del movimiento.")
+            else:
+                tipo_final = "Salida" if "Salida" in tipo_mov else "Entrada"
+                nuevo_mov = {
+                    "fecha": hoy_str,
+                    "hora": datetime.now().strftime("%H:%M"),
+                    "tipo": tipo_final,
+                    "monto": float(monto_mov),
+                    "motivo": motivo_mov.strip()
+                }
+                caja_data["movimientos"].append(nuevo_mov)
+                
+                with open(CAJA_FILE, "w") as f:
+                    json.dump(caja_data, f, indent=2)
+                
+                st.success(f"Movimiento de {monto_mov:.2f} € registrado correctamente ✅")
+                st.rerun()
+
+    with col_cj2:
+        st.write("#### ⚙️ Configuración del Fondo Inicial de Caja")
+        nuevo_fondo = st.number_input("Establecer nuevo Fondo Inicial (€):", min_value=0.0, value=float(fondo_ini), step=10.0)
+        if st.button("🔄 Actualizar Fondo Inicial"):
+            caja_data["fondo_inicial"] = float(nuevo_fondo)
+            with open(CAJA_FILE, "w") as f:
+                json.dump(caja_data, f, indent=2)
+            st.success("Fondo inicial actualizado correctamente ✅")
+            st.rerun()
+
+    st.markdown("---")
+    st.write("#### 📋 Historial de Movimientos de Caja de Hoy")
+
+    if len(movs_hoy) == 0:
+        st.info("Aún no hay movimientos registrados para el día de hoy.")
+    else:
+        df_caja = pd.DataFrame(movs_hoy)[["hora", "tipo", "monto", "motivo"]]
+        df_caja.columns = ["Hora", "Tipo", "Importe (€)", "Motivo / Concepto"]
+        st.dataframe(df_caja, use_container_width=True)
+
+# ---------------------------------------------------------
+# 9. CONTROL DE ASISTENCIA Y PAGOS
 # ---------------------------------------------------------
 elif menu == "✅ Asistencia y Pagos":
     st.subheader("✅ Control Diario de Asistencia y Gestión de Pagos")
@@ -616,7 +725,7 @@ elif menu == "✅ Asistencia y Pagos":
                     st.success(f"El estado de {nom_p} ha vuelto a PAGADO 🟢")
 
 # ---------------------------------------------------------
-# 9. LISTA COMPLETA Y DESCARGA EN EXCEL
+# 10. LISTA COMPLETA Y DESCARGA EN EXCEL
 # ---------------------------------------------------------
 elif menu == "📋 Lista Completa & Descargas":
     st.subheader(f"📋 Registro Oficial de Alumnos ({len(df_alumnos)} Alumnos)")
@@ -656,7 +765,7 @@ elif menu == "📋 Lista Completa & Descargas":
         st.dataframe(df_hor_descarga, use_container_width=True)
 
 # ---------------------------------------------------------
-# 10. HORARIOS DE PROFESORES
+# 11. HORARIOS DE PROFESORES
 # ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
@@ -667,7 +776,7 @@ elif menu == "🗓️ Horario de Profesores":
         st.dataframe(df_horario, use_container_width=True, height=450)
 
 # ---------------------------------------------------------
-# 11. GRUPOS Y AULAS
+# 12. GRUPOS Y AULAS
 # ---------------------------------------------------------
 elif menu == "👥 Grupos de Clases":
     st.subheader("🏫 Configuración de Grupos y Aulas")
@@ -679,7 +788,7 @@ elif menu == "👥 Grupos de Clases":
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
 # ---------------------------------------------------------
-# 12. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
+# 13. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
 # ---------------------------------------------------------
 elif menu == "🛠️ Editor (Bajas y Modificaciones)":
     st.subheader("🛠️ Panel de Modificación y Dar de Baja")
@@ -765,7 +874,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                 st.rerun()
 
 # ---------------------------------------------------------
-# 13. RECORDATORIOS PROGRAMADOS Y CIRCULARES
+# 14. RECORDATORIOS PROGRAMADOS Y CIRCULARES
 # ---------------------------------------------------------
 elif menu == "📌 Recordatorios Activos":
     st.subheader("📌 Agenda de Alertas Programadas")
