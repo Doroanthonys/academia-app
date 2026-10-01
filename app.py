@@ -330,7 +330,7 @@ with open(HORARIOS_FILE, "r", encoding="utf-8") as f:
     horarios = json.load(f)
 
 # ---------------------------------------------------------
-# 4. HEADER Y MENÚ DE NAVEGACIÓN
+# 4. HEADER Y CONTADORES EN LA PORTADA
 # ---------------------------------------------------------
 st.markdown("""
     <div class='hero-box'>
@@ -338,6 +338,26 @@ st.markdown("""
         <div class='hero-subtitle'>Portal Integrado - Diseñador de Anuncios y Gestión General</div>
     </div>
 """, unsafe_allow_html=True)
+
+# Cálculo de contadores para la portada
+total_alumnos = len(df_alumnos)
+alumnos_pendientes = len(df_alumnos[df_alumnos['Matrícula'].str.startswith('PEND-', na=False)])
+alumnos_oficiales = total_alumnos - alumnos_pendientes
+
+hoy_str = datetime.now().strftime("%d/%m/%Y")
+movs_hoy = [m for m in caja_data.get("movimientos", []) if m.get("fecha") == hoy_str]
+total_entradas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Entrada")
+total_salidas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Salida")
+saldo_caja = caja_data.get("fondo_inicial", 0.0) + total_entradas - total_salidas
+
+# Mostrar Tarjetas KPI en la Portada Principal
+col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+col_kpi1.markdown(f"<div class='kpi-card'><b>👨‍🎓 Total Alumnos Activos</b><br><h2 style='color:#1E3A8A; margin:0;'>{total_alumnos}</h2></div>", unsafe_allow_html=True)
+col_kpi2.markdown(f"<div class='kpi-card'><b>✅ Matriculados con Ficha</b><br><h2 style='color:#16A34A; margin:0;'>{alumnos_oficiales}</h2></div>", unsafe_allow_html=True)
+col_kpi3.markdown(f"<div class='kpi-card'><b>⏳ Pendientes de Ficha</b><br><h2 style='color:#EAB308; margin:0;'>{alumnos_pendientes}</h2></div>", unsafe_allow_html=True)
+col_kpi4.markdown(f"<div class='kpi-card'><b>💰 Saldo Caja Hoy</b><br><h2 style='color:#2563EB; margin:0;'>{saldo_caja:.2f} €</h2></div>", unsafe_allow_html=True)
+
+st.markdown("---")
 
 with st.sidebar:
     try:
@@ -355,7 +375,7 @@ with st.sidebar:
             "💵 Control de Caja Diario",
             "✅ Asistencia y Pagos",
             "📋 Lista Completa & Descargas",
-            "🗓️ Horario de Profesores",
+            "🗓️️ Horario de Profesores",
             "👥 Grupos de Clases",
             "🛠️ Editor (Bajas y Modificaciones)",
             "📌 Recordatorios Activos",
@@ -454,7 +474,7 @@ elif menu == "📢 Diseñar Anuncio (Enviar a Telegram)":
         if plantilla_sel == "🔥 Plantilla 1: Últimos Huecos (Foto Oficina)":
             texto_defecto = "🔥 ¡ÚLTIMOS HUECOS DISPONIBLES EN ANTHONY'S ENGLISH SCHOOL! 🔥\n\n¿Buscas un centro de inglés moderno, cercano y donde realmente se aprenda?\n\nVen a conocer nuestras instalaciones y encuentra el grupo perfecto para ti o para tus hijos.\n\n📍 Grupos reducidos y atención personalizada.\n📲 ¡Escríbenos un WhatsApp al 609671976 y reserva tu prueba de nivel gratuita!"
         elif plantilla_sel == "🎓 Plantilla 2: Aulas Equipadas / Exámenes":
-            texto_defecto = "🎓 PREPARA TU TÍTULO OFICIAL DE CAMBRIDGE (B1, B2, C1)\n\nEn Anthony's English School preparamos a nuestros alumnos en aulas adaptadas, cómodas y con la última tecnología.\n\n📚 Exámenes PET, FCE y Advanced\n🏫 Simulacros reales y material actualizado\n🗣️ Clases con profesores expertos\n\n📩 ¡Consúltanos horarios y reserva tu plaza!"
+            texto_defecto = "🎓 PREPARA TU TÍTULO OFICIAL DE CAMBRIDGE (B1, B2, C1)\n\nEn Anthony's English School preparamos a nuestros alumnos en aulas adaptadas, cómodas y con la última tecnología.\n\n📚 Exámenes PET, FCE y Advanced\n🏫 Simulacros reales y material actualizado\n🗣️️ Clases con profesores expertos\n\n📩 ¡Consúltanos horarios y reserva tu plaza!"
         elif plantilla_sel == "🇺🇸 Plantilla 3: Enfoque Práctico (Aula Route 66)":
             texto_defecto = "🇺🇸 ¡SUMÉRGETE EN EL INGLÉS SIN SALIR DE OURENSE!\n\nNo solo enseñamos gramática; creamos un entorno interactivo y estimulante para que hablar inglés sea natural.\n\n💡 Clases dinámicas con tecnología en el aula\n🗣️ Enfoque 100% práctico y conversacional\n🎯 Grupos específicos por niveles\n\n📲 ¡Pídenos información sin compromiso!"
         elif plantilla_sel == "🧸 Plantilla 4: Refuerzo Primaria y ESO":
@@ -572,19 +592,11 @@ elif menu == "💵 Control de Caja Diario":
     st.subheader("💵 Control Diario de Caja y Efectivo")
     st.info("Registra el fondo inicial, cobros en efectivo e ingresos o retiros por compras/gastos indicando el motivo.")
 
-    hoy_str = datetime.now().strftime("%d/%m/%Y")
-    movs_hoy = [m for m in caja_data.get("movimientos", []) if m.get("fecha") == hoy_str]
-    
-    total_entradas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Entrada")
-    total_salidas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Salida")
-    fondo_ini = caja_data.get("fondo_inicial", 0.0)
-    saldo_actual = fondo_ini + total_entradas - total_salidas
-
     c1, c2, c3, c4 = st.columns(4)
-    c1.markdown(f"<div class='kpi-card'><b>🏦 Fondo Inicial:</b><br><h3 style='color:#2563EB;'>{fondo_ini:.2f} €</h3></div>", unsafe_allow_html=True)
+    c1.markdown(f"<div class='kpi-card'><b>🏦 Fondo Inicial:</b><br><h3 style='color:#2563EB;'>{caja_data.get('fondo_inicial', 0.0):.2f} €</h3></div>", unsafe_allow_html=True)
     c2.markdown(f"<div class='kpi-card'><b>🟢 Entradas Hoy:</b><br><h3 style='color:#16A34A;'>+{total_entradas:.2f} €</h3></div>", unsafe_allow_html=True)
     c3.markdown(f"<div class='kpi-card'><b>🔴 Salidas / Gastos:</b><br><h3 style='color:#DC2626;'>-{total_salidas:.2f} €</h3></div>", unsafe_allow_html=True)
-    c4.markdown(f"<div class='kpi-card'><b>💰 Saldo Actual en Caja:</b><br><h3 style='color:#1E3A8A;'>{saldo_actual:.2f} €</h3></div>", unsafe_allow_html=True)
+    c4.markdown(f"<div class='kpi-card'><b>💰 Saldo Actual en Caja:</b><br><h3 style='color:#1E3A8A;'>{saldo_caja:.2f} €</h3></div>", unsafe_allow_html=True)
 
     st.markdown("---")
     col_cj1, col_cj2 = st.columns(2)
@@ -615,7 +627,7 @@ elif menu == "💵 Control de Caja Diario":
 
     with col_cj2:
         st.write("#### ⚙️ Configuración del Fondo Inicial de Caja")
-        nuevo_fondo = st.number_input("Establecer nuevo Fondo Inicial (€):", min_value=0.0, value=float(fondo_ini), step=10.0)
+        nuevo_fondo = st.number_input("Establecer nuevo Fondo Inicial (€):", min_value=0.0, value=float(caja_data.get('fondo_inicial', 0.0)), step=10.0)
         if st.button("🔄 Actualizar Fondo Inicial"):
             caja_data["fondo_inicial"] = float(nuevo_fondo)
             with open(CAJA_FILE, "w") as f:
@@ -856,7 +868,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                     st.rerun()
 
     with pestana[1]:
-        st.write("#### ✏️ Modificar Cuadrante de Clases")
+        st.write("#### ✏️️ Modificar Cuadrante de Clases")
         prof_edit = st.selectbox("Selecciona Profesor a editar:", list(horarios.keys()), key="prof_edit_sel")
         
         if prof_edit:
