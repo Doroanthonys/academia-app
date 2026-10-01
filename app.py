@@ -5,6 +5,7 @@ from datetime import datetime, date, time
 import json
 import os
 import io
+import urllib.parse
 
 # ---------------------------------------------------------
 # 1. CONFIGURACIÓN DE PÁGINA Y BOT TELEGRAM
@@ -16,7 +17,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Carga segura para que no falle en local ni en la nube
 TELEGRAM_TOKEN = "8811202788:AAF3mWm2tCVUkZe9mg5XhLuxuogEMK3pNlU"
 TELEGRAM_CHAT_ID = "8954494227"
 
@@ -321,6 +321,7 @@ with st.sidebar:
         [
             "🏠 Buscador & Ficha Alumno",
             "📢 Diseñar Anuncio (Enviar a Telegram)",
+            "📄 Enviar Formulario LOPD (WhatsApp)",
             "✅ Asistencia y Pagos",
             "📋 Lista Completa & Descargas",
             "🗓️ Horario de Profesores",
@@ -466,7 +467,75 @@ elif menu == "📢 Diseñar Anuncio (Enviar a Telegram)":
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 7. CONTROL DE ASISTENCIA Y PAGOS
+# 7. ENVIAR FORMULARIO LOPD POR WHATSAPP
+# ---------------------------------------------------------
+elif menu == "📄 Enviar Formulario LOPD (WhatsApp)":
+    st.subheader("📄 Autorización para el Tratamiento de Datos (LOPD / RGPD)")
+    st.info("Envía el enlace al formulario digital de AYC ORENSE, S.L. a un alumno registrado o a una persona no guardada en la base de datos.")
+
+    tipo_destinatario = st.radio(
+        "Seleccionar Destinatario:",
+        ["👤 Alumno Registrado en Base de Datos", "📱 Nuevo Contacto / No Registrado (Urgente)"]
+    )
+
+    telefono_destino = ""
+    nombre_destinatario = ""
+
+    if tipo_destinatario == "👤 Alumno Registrado en Base de Datos":
+        alumno_sel = st.selectbox(
+            "Selecciona el alumno:",
+            df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido']
+        )
+        if alumno_sel:
+            mat_sel = alumno_sel.split(" - ")[0]
+            idx_sel = df_alumnos[df_alumnos['Matrícula'] == mat_sel].index[0]
+            nombre_destinatario = df_alumnos.at[idx_sel, 'Nombre']
+            telefono_destino = str(df_alumnos.at[idx_sel, 'Teléfono']).replace(" ", "").replace("-", "")
+
+    else:
+        col_n1, col_n2 = st.columns(2)
+        nombre_destinatario = col_n1.text_input("Nombre de la persona / tutor legal:", placeholder="Ej: Maria Perez")
+        telefono_destino = col_n2.text_input("Número de Teléfono (móvil):", placeholder="Ej: 600123456")
+
+    st.markdown("---")
+    st.write("#### 📝 Enlace y Mensaje Oficial para WhatsApp")
+
+    link_formulario = st.text_input(
+        "Pega aquí el enlace de tu Google Form:",
+        value="https://forms.gle/PegaAquiTuEnlaceDeGoogleForm"
+    )
+
+    mensaje_plantilla = f"""Hola {nombre_destinatario if nombre_destinatario else ''}, te damos la bienvenida a *Anthony's English School* 🇬🇧.
+
+Para cumplir con la normativa de Protección de Datos (RGPD) de AYC ORENSE, S.L., te solicitamos completar brevemente el formulario de autorización de tratamiento de datos desde tu teléfono (se completa en 1 minuto):
+
+👇 *Haz clic en el enlace para rellenarlo:*
+{link_formulario}
+
+¡Muchas gracias por tu colaboración!"""
+
+    mensaje_editado = st.text_area("Mensaje que se enviará por WhatsApp:", value=mensaje_plantilla, height=180)
+
+    if st.button("💬 Abrir WhatsApp y Enviar Formulario", type="primary"):
+        tel_clean = ''.join(filter(str.isdigit, telefono_destino))
+        
+        if len(tel_clean) < 9:
+            st.error("Por favor, introduce o selecciona un número de teléfono válido.")
+        else:
+            if not tel_clean.startswith("34") and len(tel_clean) == 9:
+                tel_clean = "34" + tel_clean
+            
+            texto_encoded = urllib.parse.quote(mensaje_editado)
+            wa_url = f"https://wa.me/{tel_clean}?text={texto_encoded}"
+            
+            st.success("¡Enlace generado con éxito!")
+            st.markdown(
+                f'<a href="{wa_url}" target="_blank" class="btn-action btn-wa" style="text-decoration:none; padding:12px; font-size:1.1rem;">📲 Hacer Clic Para Abrir WhatsApp</a>', 
+                unsafe_allow_html=True
+            )
+
+# ---------------------------------------------------------
+# 8. CONTROL DE ASISTENCIA Y PAGOS
 # ---------------------------------------------------------
 elif menu == "✅ Asistencia y Pagos":
     st.subheader("✅ Control Diario de Asistencia y Gestión de Pagos")
@@ -546,7 +615,7 @@ elif menu == "✅ Asistencia y Pagos":
                     st.success(f"El estado de {nom_p} ha vuelto a PAGADO 🟢")
 
 # ---------------------------------------------------------
-# 8. LISTA COMPLETA Y DESCARGA EN EXCEL
+# 9. LISTA COMPLETA Y DESCARGA EN EXCEL
 # ---------------------------------------------------------
 elif menu == "📋 Lista Completa & Descargas":
     st.subheader(f"📋 Registro Oficial de Alumnos ({len(df_alumnos)} Alumnos)")
@@ -586,7 +655,7 @@ elif menu == "📋 Lista Completa & Descargas":
         st.dataframe(df_hor_descarga, use_container_width=True)
 
 # ---------------------------------------------------------
-# 9. HORARIOS DE PROFESORES
+# 10. HORARIOS DE PROFESORES
 # ---------------------------------------------------------
 elif menu == "🗓️ Horario de Profesores":
     st.subheader("🗓️ Cuadrante Semanal de Profesores")
@@ -597,7 +666,7 @@ elif menu == "🗓️ Horario de Profesores":
         st.dataframe(df_horario, use_container_width=True, height=450)
 
 # ---------------------------------------------------------
-# 10. GRUPOS Y AULAS
+# 11. GRUPOS Y AULAS
 # ---------------------------------------------------------
 elif menu == "👥 Grupos de Clases":
     st.subheader("🏫 Configuración de Grupos y Aulas")
@@ -609,7 +678,7 @@ elif menu == "👥 Grupos de Clases":
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
 # ---------------------------------------------------------
-# 11. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
+# 12. EDITOR COMPLETO (BAJAS Y MODIFICACIONES)
 # ---------------------------------------------------------
 elif menu == "🛠️ Editor (Bajas y Modificaciones)":
     st.subheader("🛠️ Panel de Modificación y Dar de Baja")
@@ -695,7 +764,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                 st.rerun()
 
 # ---------------------------------------------------------
-# 12. RECORDATORIOS PROGRAMADOS Y CIRCULARES
+# 13. RECORDATORIOS PROGRAMADOS Y CIRCULARES
 # ---------------------------------------------------------
 elif menu == "📌 Recordatorios Activos":
     st.subheader("📌 Agenda de Alertas Programadas")
@@ -719,7 +788,6 @@ elif menu == "📢 Enviar Circular General":
     st.subheader("📢 Envío Masivo por WhatsApp")
     txt_circ = st.text_area("Mensaje institucional:", "Estimadas familias de Anthony's English School...")
     if txt_circ:
-        import urllib.parse
         encoded = urllib.parse.quote(txt_circ)
         for idx, row in df_alumnos.head(15).iterrows():
             st.markdown(f"👤 **{row['Nombre']} {row['Primer Apellido']}** — <a href='https://wa.me/34{row['Teléfono']}?text={encoded}' target='_blank'>💬 Enviar WhatsApp</a>", unsafe_allow_html=True)
