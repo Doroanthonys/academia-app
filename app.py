@@ -500,16 +500,17 @@ elif menu == "📄 Enviar Formulario LOPD (WhatsApp)":
     st.markdown("---")
     st.write("#### 📝 Enlace y Mensaje Oficial para WhatsApp")
 
+    # ENLACE FIJO DE GOOGLE DOCS
     link_formulario = st.text_input(
-        "Pega aquí el enlace de tu Google Form:",
-        value="https://forms.gle/PegaAquiTuEnlaceDeGoogleForm"
+        "Enlace del formulario / documento LOPD:",
+        value="https://docs.google.com/document/d/1uGiLkQrsrpciaywvqVa0wa5zlg0GD59CbtXpfkTlLF0/edit?usp=sharing"
     )
 
     mensaje_plantilla = f"""Hola {nombre_destinatario if nombre_destinatario else ''}, te damos la bienvenida a *Anthony's English School* 🇬🇧.
 
-Para cumplir con la normativa de Protección de Datos (RGPD) de AYC ORENSE, S.L., te solicitamos completar brevemente el formulario de autorización de tratamiento de datos desde tu teléfono (se completa en 1 minuto):
+Para cumplir con la normativa de Protección de Datos (RGPD) de AYC ORENSE, S.L., te solicitamos completar/revisar brevemente el formulario de autorización de tratamiento de datos desde tu teléfono (se completa en 1 minuto):
 
-👇 *Haz clic en el enlace para rellenarlo:*
+👇 *Haz clic en el enlace para acceder:*
 {link_formulario}
 
 ¡Muchas gracias por tu colaboración!"""
