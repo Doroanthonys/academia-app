@@ -357,7 +357,7 @@ with st.sidebar:
             "📋 Lista Completa & Descargas",
             "🗓️ Horario de Profesores",
             "👥 Grupos de Clases",
-            "🛠️️ Editor (Bajas y Modificaciones)",
+            "🛠️ Editor (Bajas y Modificaciones)",
             "📌 Recordatorios Activos",
             "📢 Enviar Circular General"
         ]
@@ -734,7 +734,7 @@ elif menu == "📋 Lista Completa & Descargas":
     st.dataframe(df_alumnos, height=350, use_container_width=True)
     
     st.markdown("---")
-    st.subheader("🗓️️ Descargar Horarios de Profesores para Imprimir")
+    st.subheader("🗓️ Descargar Horarios de Profesores para Imprimir")
     
     prof_descarga = st.selectbox("Selecciona Profesor para exportar horario:", list(horarios.keys()))
     if prof_descarga in horarios:
@@ -786,7 +786,7 @@ elif menu == "👥 Grupos de Clases":
         {"Grupo": "Grupo 16", "Profesor": "Doro", "Horario": "17:00 - 18:00", "Días": "Miércoles y Viernes", "Aula": "CLASS A", "Alumnos": "Alejandro, Álvaro, Borja Martin, Borja Lucas"},
         {"Grupo": "Grupo 17", "Profesor": "Doro", "Horario": "19:00 - 20:00", "Días": "Lunes y Miércoles", "Aula": "CLASS A", "Alumnos": "Brais, Zoe, Fernanda, Vadillo, Adri, Zamora, Penas Lorenzo, Raquel Xing"},
         {"Grupo": "Grupo Ivan Jueves", "Profesor": "Ivan", "Horario": "19:00 - 20:00", "Días": "Jueves", "Aula": "CLASS A", "Alumnos": "Beatriz, Ainhoa, Nerea, Juan Fernández"},
-        {"Grupo Iza Jueves", "Profesor": "Iza", "Horario": "18:00 - 19:00", "Días": "Jueves", "Aula": "CLASS C", "Alumnos": "Jincheng, Xinhui, Luana Xia"}
+        {"Grupo": "Grupo Iza Jueves", "Profesor": "Iza", "Horario": "18:00 - 19:00", "Días": "Jueves", "Aula": "CLASS C", "Alumnos": "Jincheng, Xinhui, Luana Xia"}
     ]
     st.dataframe(pd.DataFrame(grupos_info), use_container_width=True)
 
