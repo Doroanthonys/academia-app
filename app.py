@@ -89,13 +89,14 @@ HORARIOS_FILE = "horarios_data.json"
 PAGOS_FILE = "pagos_data.json"
 CAJA_FILE = "caja_data.json"
 
-# ID Y URL DE TU HOJA EN GOOGLE SHEETS
 GSHEET_ID = "1Yz_QgCn9Amfurxa5YWDgJYuN3HB-d5tVqGRcvWYjEiE"
 GSHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{GSHEET_ID}/gviz/tq?tqx=out:csv"
 
 def obtener_movimientos_caja_gsheets():
     try:
         df_caja = pd.read_csv(GSHEET_CSV_URL)
+        # Limpiar nombres de columnas
+        df_caja.columns = [str(c).strip() for c in df_caja.columns]
         return df_caja
     except Exception:
         if os.path.exists(CAJA_FILE):
@@ -281,7 +282,6 @@ def obtener_alumnos_con_nuevos():
         {"Matrícula": "PEND-30", "Nombre": "JUAN", "Primer Apellido": "FERNÁNDEZ", "Segundo Apellido": "SEARA", "Teléfono": "PENDIENTE", "Fecha Alta": "01/10/2026"}
     ]
 
-# Cargar base de datos
 df_init = pd.DataFrame(obtener_alumnos_con_nuevos())
 df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 df_alumnos = pd.read_csv(DATA_FILE, dtype=str)
@@ -359,18 +359,36 @@ total_alumnos = len(df_alumnos)
 alumnos_pendientes = len(df_alumnos[df_alumnos['Matrícula'].str.startswith('PEND-', na=False)])
 alumnos_oficiales = total_alumnos - alumnos_pendientes
 
-# Cargar movimientos desde Google Sheets
 df_caja_gsheet = obtener_movimientos_caja_gsheets()
 
 hoy_str = datetime.now().strftime("%d/%m/%Y")
 total_entradas = 0.0
 total_salidas = 0.0
 
-if not df_caja_gsheet.empty and 'Monto' in df_caja_gsheet.columns:
-    df_hoy = df_caja_gsheet[df_caja_gsheet['Fecha'] == hoy_str] if 'Fecha' in df_caja_gsheet.columns else pd.DataFrame()
-    if not df_hoy.empty:
-        total_entradas = float(df_hoy[df_hoy['Tipo'] == 'Entrada']['Monto'].sum()) if 'Tipo' in df_hoy.columns else 0.0
-        total_salidas = float(df_hoy[df_hoy['Tipo'] == 'Salida']['Monto'].sum()) if 'Tipo' in df_hoy.columns else 0.0
+if not df_caja_gsheet.empty:
+    col_monto = [c for c in df_caja_gsheet.columns if 'monto' in c.lower() or 'importe' in c.lower()]
+    col_tipo = [c for c in df_caja_gsheet.columns if 'tipo' in c.lower()]
+    col_fecha = [c for c in df_caja_gsheet.columns if 'fecha' in c.lower()]
+
+    if col_monto and col_tipo and col_fecha:
+        m_col, t_col, f_col = col_monto[0], col_tipo[0], col_fecha[0]
+        
+        # Limpieza robusta de números
+        df_caja_gsheet[m_col] = pd.to_numeric(
+            df_caja_gsheet[m_col].astype(str).str.replace('€', '').str.replace(' ', '').str.replace(',', '.'), 
+            errors='coerce'
+        ).fillna(0.0)
+
+        df_hoy = df_caja_gsheet[df_caja_gsheet[f_col].astype(str).str.contains(hoy_str, na=False)]
+        
+        total_entradas = float(df_hoy[df_hoy[t_col].astype(str).str.lower().str.contains('entrada|ingreso|cobro', na=False)][m_col].sum())
+        total_salidas = float(df_hoy[df_hoy[t_col].astype(str).str.lower().str.contains('salida|retiro|gasto', na=False)][m_col].sum())
+
+# Si Google Sheets está vacío, suma de caja local
+if total_entradas == 0.0 and total_salidas == 0.0 and os.path.exists(CAJA_FILE):
+    movs_hoy = [m for m in caja_data.get("movimientos", []) if m.get("fecha") == hoy_str]
+    total_entradas = sum(m["monto"] for m in movs_hoy if "entrada" in m["tipo"].lower())
+    total_salidas = sum(m["monto"] for m in movs_hoy if "salida" in m["tipo"].lower())
 
 saldo_caja = caja_data.get("fondo_inicial", 0.0) + total_entradas - total_salidas
 
@@ -401,7 +419,7 @@ with st.sidebar:
             "📋 Lista Completa & Descargas",
             "🗓️ Horario de Profesores",
             "👥 Grupos de Clases",
-            "🛠️️ Editor (Bajas y Modificaciones)",
+            "🛠️ Editor (Bajas y Modificaciones)",
             "📌 Recordatorios Activos",
             "📢 Enviar Circular General"
         ]
@@ -626,29 +644,27 @@ elif menu == "💵 Control de Caja Diario (Cloud)":
     col_cj1, col_cj2 = st.columns(2)
 
     with col_cj1:
-        st.write("#### ➕ / ➖ Registrar Movimiento en Google Sheets")
-        tipo_mov = st.selectbox("Tipo de Movimiento:", ["🔴 Salida / Retiro de Dinero (Gasto)", "🟢 Entrada / Cobro en Efectivo"])
+        st.write("#### ➕ / ➖ Registrar Movimiento de Efectivo")
+        tipo_mov = st.selectbox("Tipo de Movimiento:", ["🟢 Entrada / Cobro en Efectivo", "🔴 Salida / Retiro de Dinero (Gasto)"])
         monto_mov = st.number_input("Importe (€):", min_value=0.01, value=10.00, step=1.0)
         motivo_mov = st.text_input("Motivo / Concepto del movimiento:", placeholder="Ej: Compra folios, Tinta impresora, Cobro cuota...")
 
-        if st.button("💾 Guardar Movimiento Sincronizado", type="primary"):
+        if st.button("💾 Guardar Movimiento en Caja", type="primary"):
             if not motivo_mov.strip():
                 st.error("Por favor, especifica el motivo o concepto del movimiento.")
             else:
-                tipo_final = "Salida" if "Salida" in tipo_mov else "Entrada"
+                tipo_final = "Entrada" if "Entrada" in tipo_mov else "Salida"
                 hora_actual = datetime.now().strftime("%H:%M")
                 
-                # Guardar backup local
                 nuevo_mov = {"fecha": hoy_str, "hora": hora_actual, "tipo": tipo_final, "monto": float(monto_mov), "motivo": motivo_mov.strip()}
                 caja_data["movimientos"].append(nuevo_mov)
                 with open(CAJA_FILE, "w") as f:
                     json.dump(caja_data, f, indent=2)
                 
-                # Alerta Telegram opcional
                 enviar_notificacion_telegram(f"💵 *NUEVO MOVIMIENTO DE CAJA ({tipo_final.upper()}):*\nImporte: *{monto_mov:.2f} €*\nMotivo: {motivo_mov}\nFecha: {hoy_str} {hora_actual}")
                 
                 st.success(f"Movimiento de {monto_mov:.2f} € registrado correctamente ✅")
-                st.markdown(f"🔗 [Ver Registro Oficial en Google Sheets](https://docs.google.com/spreadsheets/d/{GSHEET_ID}/edit)")
+                st.markdown(f"🔗 [Abrir Tu Hoja en Google Sheets](https://docs.google.com/spreadsheets/d/{GSHEET_ID}/edit)")
                 st.rerun()
 
     with col_cj2:
