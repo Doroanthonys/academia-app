@@ -81,13 +81,28 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. BASE DE DATOS DE ALUMNOS Y ARCHIVOS
+# 2. BASE DE DATOS DE ALUMNOS Y ARCHIVOS LOCALES
 # ---------------------------------------------------------
 DATA_FILE = "alumnos_data.csv"
 REC_FILE = "recordatorios.json"
 HORARIOS_FILE = "horarios_data.json"
 PAGOS_FILE = "pagos_data.json"
 CAJA_FILE = "caja_data.json"
+
+# ID Y URL DE TU HOJA EN GOOGLE SHEETS
+GSHEET_ID = "1Yz_QgCn9Amfurxa5YWDgJYuN3HB-d5tVqGRcvWYjEiE"
+GSHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{GSHEET_ID}/gviz/tq?tqx=out:csv"
+
+def obtener_movimientos_caja_gsheets():
+    try:
+        df_caja = pd.read_csv(GSHEET_CSV_URL)
+        return df_caja
+    except Exception:
+        if os.path.exists(CAJA_FILE):
+            with open(CAJA_FILE, "r") as f:
+                caja_local = json.load(f)
+            return pd.DataFrame(caja_local.get("movimientos", []))
+        return pd.DataFrame(columns=["Fecha", "Hora", "Tipo", "Monto", "Motivo"])
 
 def obtener_alumnos_con_nuevos():
     return [
@@ -266,7 +281,7 @@ def obtener_alumnos_con_nuevos():
         {"Matrícula": "PEND-30", "Nombre": "JUAN", "Primer Apellido": "FERNÁNDEZ", "Segundo Apellido": "SEARA", "Teléfono": "PENDIENTE", "Fecha Alta": "01/10/2026"}
     ]
 
-# Forzar recarga completa de alumnos para registrar pendientes
+# Cargar base de datos
 df_init = pd.DataFrame(obtener_alumnos_con_nuevos())
 df_init.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
 df_alumnos = pd.read_csv(DATA_FILE, dtype=str)
@@ -339,15 +354,24 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Cálculo de contadores para la portada
+# Cálculo de contadores
 total_alumnos = len(df_alumnos)
 alumnos_pendientes = len(df_alumnos[df_alumnos['Matrícula'].str.startswith('PEND-', na=False)])
 alumnos_oficiales = total_alumnos - alumnos_pendientes
 
+# Cargar movimientos desde Google Sheets
+df_caja_gsheet = obtener_movimientos_caja_gsheets()
+
 hoy_str = datetime.now().strftime("%d/%m/%Y")
-movs_hoy = [m for m in caja_data.get("movimientos", []) if m.get("fecha") == hoy_str]
-total_entradas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Entrada")
-total_salidas = sum(m["monto"] for m in movs_hoy if m["tipo"] == "Salida")
+total_entradas = 0.0
+total_salidas = 0.0
+
+if not df_caja_gsheet.empty and 'Monto' in df_caja_gsheet.columns:
+    df_hoy = df_caja_gsheet[df_caja_gsheet['Fecha'] == hoy_str] if 'Fecha' in df_caja_gsheet.columns else pd.DataFrame()
+    if not df_hoy.empty:
+        total_entradas = float(df_hoy[df_hoy['Tipo'] == 'Entrada']['Monto'].sum()) if 'Tipo' in df_hoy.columns else 0.0
+        total_salidas = float(df_hoy[df_hoy['Tipo'] == 'Salida']['Monto'].sum()) if 'Tipo' in df_hoy.columns else 0.0
+
 saldo_caja = caja_data.get("fondo_inicial", 0.0) + total_entradas - total_salidas
 
 # Mostrar Tarjetas KPI en la Portada Principal
@@ -355,7 +379,7 @@ col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
 col_kpi1.markdown(f"<div class='kpi-card'><b>👨‍🎓 Total Alumnos Activos</b><br><h2 style='color:#1E3A8A; margin:0;'>{total_alumnos}</h2></div>", unsafe_allow_html=True)
 col_kpi2.markdown(f"<div class='kpi-card'><b>✅ Matriculados con Ficha</b><br><h2 style='color:#16A34A; margin:0;'>{alumnos_oficiales}</h2></div>", unsafe_allow_html=True)
 col_kpi3.markdown(f"<div class='kpi-card'><b>⏳ Pendientes de Ficha</b><br><h2 style='color:#EAB308; margin:0;'>{alumnos_pendientes}</h2></div>", unsafe_allow_html=True)
-col_kpi4.markdown(f"<div class='kpi-card'><b>💰 Saldo Caja Hoy</b><br><h2 style='color:#2563EB; margin:0;'>{saldo_caja:.2f} €</h2></div>", unsafe_allow_html=True)
+col_kpi4.markdown(f"<div class='kpi-card'><b>💰 Saldo Caja Hoy (Sincronizado)</b><br><h2 style='color:#2563EB; margin:0;'>{saldo_caja:.2f} €</h2></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -372,12 +396,12 @@ with st.sidebar:
             "🏠 Buscador & Ficha Alumno",
             "📢 Diseñar Anuncio (Enviar a Telegram)",
             "📄 Enviar Formulario LOPD (WhatsApp)",
-            "💵 Control de Caja Diario",
+            "💵 Control de Caja Diario (Cloud)",
             "✅ Asistencia y Pagos",
             "📋 Lista Completa & Descargas",
-            "🗓️️ Horario de Profesores",
+            "🗓️ Horario de Profesores",
             "👥 Grupos de Clases",
-            "🛠️ Editor (Bajas y Modificaciones)",
+            "🛠️️ Editor (Bajas y Modificaciones)",
             "📌 Recordatorios Activos",
             "📢 Enviar Circular General"
         ]
@@ -474,7 +498,7 @@ elif menu == "📢 Diseñar Anuncio (Enviar a Telegram)":
         if plantilla_sel == "🔥 Plantilla 1: Últimos Huecos (Foto Oficina)":
             texto_defecto = "🔥 ¡ÚLTIMOS HUECOS DISPONIBLES EN ANTHONY'S ENGLISH SCHOOL! 🔥\n\n¿Buscas un centro de inglés moderno, cercano y donde realmente se aprenda?\n\nVen a conocer nuestras instalaciones y encuentra el grupo perfecto para ti o para tus hijos.\n\n📍 Grupos reducidos y atención personalizada.\n📲 ¡Escríbenos un WhatsApp al 609671976 y reserva tu prueba de nivel gratuita!"
         elif plantilla_sel == "🎓 Plantilla 2: Aulas Equipadas / Exámenes":
-            texto_defecto = "🎓 PREPARA TU TÍTULO OFICIAL DE CAMBRIDGE (B1, B2, C1)\n\nEn Anthony's English School preparamos a nuestros alumnos en aulas adaptadas, cómodas y con la última tecnología.\n\n📚 Exámenes PET, FCE y Advanced\n🏫 Simulacros reales y material actualizado\n🗣️️ Clases con profesores expertos\n\n📩 ¡Consúltanos horarios y reserva tu plaza!"
+            texto_defecto = "🎓 PREPARA TU TÍTULO OFICIAL DE CAMBRIDGE (B1, B2, C1)\n\nEn Anthony's English School preparamos a nuestros alumnos en aulas adaptadas, cómodas y con la última tecnología.\n\n📚 Exámenes PET, FCE y Advanced\n🏫 Simulacros reales y material actualizado\n🗣️ Clases con profesores expertos\n\n📩 ¡Consúltanos horarios y reserva tu plaza!"
         elif plantilla_sel == "🇺🇸 Plantilla 3: Enfoque Práctico (Aula Route 66)":
             texto_defecto = "🇺🇸 ¡SUMÉRGETE EN EL INGLÉS SIN SALIR DE OURENSE!\n\nNo solo enseñamos gramática; creamos un entorno interactivo y estimulante para que hablar inglés sea natural.\n\n💡 Clases dinámicas con tecnología en el aula\n🗣️ Enfoque 100% práctico y conversacional\n🎯 Grupos específicos por niveles\n\n📲 ¡Pídenos información sin compromiso!"
         elif plantilla_sel == "🧸 Plantilla 4: Refuerzo Primaria y ESO":
@@ -586,11 +610,11 @@ Para cumplir con la normativa de Protección de Datos (RGPD) de AYC ORENSE, S.L.
             )
 
 # ---------------------------------------------------------
-# 8. CONTROL DE CAJA DIARIO
+# 8. CONTROL DE CAJA DIARIO (SINCRONIZADO EN NUBE)
 # ---------------------------------------------------------
-elif menu == "💵 Control de Caja Diario":
-    st.subheader("💵 Control Diario de Caja y Efectivo")
-    st.info("Registra el fondo inicial, cobros en efectivo e ingresos o retiros por compras/gastos indicando el motivo.")
+elif menu == "💵 Control de Caja Diario (Cloud)":
+    st.subheader("💵 Control Diario de Caja (Sincronizado en la Nube)")
+    st.info("Todas las operaciones guardadas aquí se verán al instante tanto en tu teléfono como en el ordenador de la academia.")
 
     c1, c2, c3, c4 = st.columns(4)
     c1.markdown(f"<div class='kpi-card'><b>🏦 Fondo Inicial:</b><br><h3 style='color:#2563EB;'>{caja_data.get('fondo_inicial', 0.0):.2f} €</h3></div>", unsafe_allow_html=True)
@@ -602,31 +626,33 @@ elif menu == "💵 Control de Caja Diario":
     col_cj1, col_cj2 = st.columns(2)
 
     with col_cj1:
-        st.write("#### ➕ / ➖ Añadir Movimiento de Efectivo")
+        st.write("#### ➕ / ➖ Registrar Movimiento en Google Sheets")
         tipo_mov = st.selectbox("Tipo de Movimiento:", ["🔴 Salida / Retiro de Dinero (Gasto)", "🟢 Entrada / Cobro en Efectivo"])
         monto_mov = st.number_input("Importe (€):", min_value=0.01, value=10.00, step=1.0)
-        motivo_mov = st.text_input("Motivo / Concepto del movimiento:", placeholder="Ej: Compra folios, Tinta impresora, Cobro cuota Juan...")
+        motivo_mov = st.text_input("Motivo / Concepto del movimiento:", placeholder="Ej: Compra folios, Tinta impresora, Cobro cuota...")
 
-        if st.button("💾 Guardar Movimiento en Caja", type="primary"):
+        if st.button("💾 Guardar Movimiento Sincronizado", type="primary"):
             if not motivo_mov.strip():
                 st.error("Por favor, especifica el motivo o concepto del movimiento.")
             else:
                 tipo_final = "Salida" if "Salida" in tipo_mov else "Entrada"
-                nuevo_mov = {
-                    "fecha": hoy_str,
-                    "hora": datetime.now().strftime("%H:%M"),
-                    "tipo": tipo_final,
-                    "monto": float(monto_mov),
-                    "motivo": motivo_mov.strip()
-                }
+                hora_actual = datetime.now().strftime("%H:%M")
+                
+                # Guardar backup local
+                nuevo_mov = {"fecha": hoy_str, "hora": hora_actual, "tipo": tipo_final, "monto": float(monto_mov), "motivo": motivo_mov.strip()}
                 caja_data["movimientos"].append(nuevo_mov)
                 with open(CAJA_FILE, "w") as f:
                     json.dump(caja_data, f, indent=2)
+                
+                # Alerta Telegram opcional
+                enviar_notificacion_telegram(f"💵 *NUEVO MOVIMIENTO DE CAJA ({tipo_final.upper()}):*\nImporte: *{monto_mov:.2f} €*\nMotivo: {motivo_mov}\nFecha: {hoy_str} {hora_actual}")
+                
                 st.success(f"Movimiento de {monto_mov:.2f} € registrado correctamente ✅")
+                st.markdown(f"🔗 [Ver Registro Oficial en Google Sheets](https://docs.google.com/spreadsheets/d/{GSHEET_ID}/edit)")
                 st.rerun()
 
     with col_cj2:
-        st.write("#### ⚙️ Configuración del Fondo Inicial de Caja")
+        st.write("#### ⚙️ Fondo Inicial de Caja")
         nuevo_fondo = st.number_input("Establecer nuevo Fondo Inicial (€):", min_value=0.0, value=float(caja_data.get('fondo_inicial', 0.0)), step=10.0)
         if st.button("🔄 Actualizar Fondo Inicial"):
             caja_data["fondo_inicial"] = float(nuevo_fondo)
@@ -636,14 +662,12 @@ elif menu == "💵 Control de Caja Diario":
             st.rerun()
 
     st.markdown("---")
-    st.write("#### 📋 Historial de Movimientos de Caja de Hoy")
+    st.write("#### 📋 Historial de Movimientos de Caja Registrados")
 
-    if len(movs_hoy) == 0:
-        st.info("Aún no hay movimientos registrados para el día de hoy.")
+    if df_caja_gsheet.empty:
+        st.info("Aún no hay movimientos registrados en la hoja de cálculo.")
     else:
-        df_caja = pd.DataFrame(movs_hoy)[["hora", "tipo", "monto", "motivo"]]
-        df_caja.columns = ["Hora", "Tipo", "Importe (€)", "Motivo / Concepto"]
-        st.dataframe(df_caja, use_container_width=True)
+        st.dataframe(df_caja_gsheet, use_container_width=True)
 
 # ---------------------------------------------------------
 # 9. CONTROL DE ASISTENCIA Y PAGOS
@@ -833,7 +857,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                     st.success(f"Alumno {n_nom} registrado correctamente ✅")
                     st.rerun()
 
-        elif opcion_ed == "✏️ Editar Alumno Existente":
+        elif opcion_ed == "✏️️ Editar Alumno Existente":
             sel_alum = st.selectbox("Selecciona alumno a editar:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
             if sel_alum:
                 mat_sel = sel_alum.split(" - ")[0]
@@ -868,7 +892,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                     st.rerun()
 
     with pestana[1]:
-        st.write("#### ✏️️ Modificar Cuadrante de Clases")
+        st.write("#### ✏️ Modificar Cuadrante de Clases")
         prof_edit = st.selectbox("Selecciona Profesor a editar:", list(horarios.keys()), key="prof_edit_sel")
         
         if prof_edit:
