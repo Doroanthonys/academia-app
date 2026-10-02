@@ -95,7 +95,6 @@ GSHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{GSHEET_ID}/gviz/tq?tq
 def obtener_movimientos_caja_gsheets():
     try:
         df_caja = pd.read_csv(GSHEET_CSV_URL)
-        # Limpiar nombres de columnas
         df_caja.columns = [str(c).strip() for c in df_caja.columns]
         return df_caja
     except Exception:
@@ -359,39 +358,6 @@ total_alumnos = len(df_alumnos)
 alumnos_pendientes = len(df_alumnos[df_alumnos['Matrícula'].str.startswith('PEND-', na=False)])
 alumnos_oficiales = total_alumnos - alumnos_pendientes
 
-df_caja_gsheet = obtener_movimientos_caja_gsheets()
-
-hoy_str = datetime.now().strftime("%d/%m/%Y")
-total_entradas = 0.0
-total_salidas = 0.0
-
-if not df_caja_gsheet.empty:
-    col_monto = [c for c in df_caja_gsheet.columns if 'monto' in c.lower() or 'importe' in c.lower()]
-    col_tipo = [c for c in df_caja_gsheet.columns if 'tipo' in c.lower()]
-    col_fecha = [c for c in df_caja_gsheet.columns if 'fecha' in c.lower()]
-
-    if col_monto and col_tipo and col_fecha:
-        m_col, t_col, f_col = col_monto[0], col_tipo[0], col_fecha[0]
-        
-        # Limpieza robusta de números
-        df_caja_gsheet[m_col] = pd.to_numeric(
-            df_caja_gsheet[m_col].astype(str).str.replace('€', '').str.replace(' ', '').str.replace(',', '.'), 
-            errors='coerce'
-        ).fillna(0.0)
-
-        df_hoy = df_caja_gsheet[df_caja_gsheet[f_col].astype(str).str.contains(hoy_str, na=False)]
-        
-        total_entradas = float(df_hoy[df_hoy[t_col].astype(str).str.lower().str.contains('entrada|ingreso|cobro', na=False)][m_col].sum())
-        total_salidas = float(df_hoy[df_hoy[t_col].astype(str).str.lower().str.contains('salida|retiro|gasto', na=False)][m_col].sum())
-
-# Si Google Sheets está vacío, suma de caja local
-if total_entradas == 0.0 and total_salidas == 0.0 and os.path.exists(CAJA_FILE):
-    movs_hoy = [m for m in caja_data.get("movimientos", []) if m.get("fecha") == hoy_str]
-    total_entradas = sum(m["monto"] for m in movs_hoy if "entrada" in m["tipo"].lower())
-    total_salidas = sum(m["monto"] for m in movs_hoy if "salida" in m["tipo"].lower())
-
-saldo_caja = caja_data.get("fondo_inicial", 0.0) + total_entradas - total_salidas
-
 # Mostrar Tarjetas KPI en la Portada Principal
 col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
 col_kpi1.markdown(f"<div class='kpi-card'><b>👨‍🎓 Total Alumnos Activos</b><br><h2 style='color:#1E3A8A; margin:0;'>{total_alumnos}</h2></div>", unsafe_allow_html=True)
@@ -643,6 +609,8 @@ elif menu == "💵 Control de Caja Diario (Cloud)":
     st.markdown("---")
     col_cj1, col_cj2 = st.columns(2)
 
+    hoy_str = datetime.now().strftime("%d/%m/%Y")
+
     with col_cj1:
         st.write("#### ➕ / ➖ Registrar Movimiento de Efectivo")
         tipo_mov = st.selectbox("Tipo de Movimiento:", ["🟢 Entrada / Cobro en Efectivo", "🔴 Salida / Retiro de Dinero (Gasto)"])
@@ -678,12 +646,22 @@ elif menu == "💵 Control de Caja Diario (Cloud)":
             st.rerun()
 
     st.markdown("---")
-    st.write("#### 📋 Historial de Movimientos de Caja Registrados")
+    st.write("#### 📋 Historial de Movimientos & Descarga en Excel")
 
-    if df_caja_gsheet.empty:
-        st.info("Aún no hay movimientos registrados en la hoja de cálculo.")
-    else:
+    if not df_caja_gsheet.empty:
+        buffer_caja = io.BytesIO()
+        df_caja_gsheet.to_csv(buffer_caja, index=False, sep=';', encoding='utf-8-sig')
+        buffer_caja.seek(0)
+        
+        st.download_button(
+            label="📥 Descargar Registro de Caja Completo (Para Filtrar por Semanas/Meses en Excel)",
+            data=buffer_caja,
+            file_name=f"Caja_Anthonys_School_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
         st.dataframe(df_caja_gsheet, use_container_width=True)
+    else:
+        st.info("Aún no hay movimientos registrados en la hoja de cálculo de Google Sheets.")
 
 # ---------------------------------------------------------
 # 9. CONTROL DE ASISTENCIA Y PAGOS
@@ -786,7 +764,7 @@ elif menu == "📋 Lista Completa & Descargas":
     st.dataframe(df_alumnos, height=350, use_container_width=True)
     
     st.markdown("---")
-    st.subheader("🗓️ Descargar Horarios de Profesores para Imprimir")
+    st.subheader("🗓️️ Descargar Horarios de Profesores para Imprimir")
     
     prof_descarga = st.selectbox("Selecciona Profesor para exportar horario:", list(horarios.keys()))
     if prof_descarga in horarios:
@@ -873,7 +851,7 @@ elif menu == "🛠️ Editor (Bajas y Modificaciones)":
                     st.success(f"Alumno {n_nom} registrado correctamente ✅")
                     st.rerun()
 
-        elif opcion_ed == "✏️️ Editar Alumno Existente":
+        elif opcion_ed == "✏️ Editar Alumno Existente":
             sel_alum = st.selectbox("Selecciona alumno a editar:", df_alumnos['Matrícula'] + " - " + df_alumnos['Nombre'] + " " + df_alumnos['Primer Apellido'])
             if sel_alum:
                 mat_sel = sel_alum.split(" - ")[0]
